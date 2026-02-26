@@ -30,22 +30,34 @@ def write_binary_file(filename, numbers):
 
 
 def create_runs_dynamic(input_file, num_runs_target):
-    """Chia file input thành các Run dựa trên số lượng người dùng yêu cầu"""
+    """Chia file input thành các Run mà KHÔNG nạp cả file vào RAM"""
     for f in os.listdir("runs"):
         os.remove(os.path.join("runs", f))
 
-    numbers = read_binary_file(input_file)
-    n = len(numbers)
-    # Tính kích thước mỗi run để đạt được số lượng run mong muốn
-    run_size = max(1, n // num_runs_target)
+    file_size = os.path.getsize(input_file)
+    n_elements = file_size // 8
+    # Tính toán kích thước mỗi Run để đạt được số lượng K-Way mong muốn
+    run_size = max(1, n_elements // num_runs_target)
 
     run_files = []
-    for i in range(0, n, run_size):
-        chunk = numbers[i:i + run_size]
-        chunk.sort()
-        run_name = f"runs/run_{len(run_files)}.bin"
-        write_binary_file(run_name, chunk)
-        run_files.append(run_name)
+    with open(input_file, "rb") as f_in:
+        for i in range(num_runs_target):
+            # Chỉ đọc đúng số lượng phần tử cần thiết cho 1 Run
+            data = f_in.read(run_size * 8)
+            if not data: break
+
+            count = len(data) // 8
+            # Giải mã dữ liệu và sắp xếp ngay trong RAM tạm thời
+            chunk = list(struct.unpack(f"{count}d", data))
+            chunk.sort()
+
+            run_name = f"runs/run_{len(run_files)}.bin"
+            write_binary_file(run_name, chunk)
+            run_files.append(run_name)
+
+            # Giải phóng bộ nhớ chunk sau khi ghi xong
+            del chunk
+
     return run_files
 
 

@@ -191,18 +191,40 @@ function drawPicked(v) {
 function drawOutput(out) {
     const container = document.getElementById("output");
     if (!container) return;
-    container.innerHTML = "";
-    out.forEach((value, index) => {
-        const div = document.createElement("div");
-        div.className = "box output-box";
-        div.innerText = value.toFixed(1);
-        if (index === out.length - 1) {
-            div.style.animation = "fadeIn 0.5s ease";
-            div.style.border = "2px solid #fff";
-        }
-        container.appendChild(div);
-    });
-    container.scrollTop = container.scrollHeight;
+
+    // Lấy số lượng phần tử hiện có trong giao diện
+    const currentDisplayedCount = container.children.length;
+
+    // Nếu dữ liệu mới (out) nhiều hơn dữ liệu đang hiển thị
+    if (out.length > currentDisplayedCount) {
+        // Chỉ lấy những phần tử mới chưa được vẽ
+        const newElements = out.slice(currentDisplayedCount);
+
+        newElements.forEach((value) => {
+            const div = document.createElement("div");
+            div.className = "box output-box";
+            div.innerText = value.toFixed(1);
+
+            // Thêm trực tiếp vào cuối container mà không xóa cũ
+            container.appendChild(div);
+        });
+
+        // Tự động cuộn xuống mượt mà (smooth scroll)
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+    // Trường hợp tua slider hoặc reset (out ít hơn hiện tại) thì mới vẽ lại toàn bộ
+    else if (out.length < currentDisplayedCount || out.length === 0) {
+        container.innerHTML = "";
+        out.forEach(value => {
+            const div = document.createElement("div");
+            div.className = "box output-box";
+            div.innerText = value.toFixed(1);
+            container.appendChild(div);
+        });
+    }
 }
 
 function showToast(m) {

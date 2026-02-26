@@ -5,12 +5,13 @@ import heapq
 
 app = Flask(__name__)
 
-# Khởi tạo thư mục
+# Đảm bảo các thư mục hệ thống luôn sẵn sàng
 for path in ["uploads", "runs", "output"]:
     os.makedirs(path, exist_ok=True)
 
+
 def read_binary_file(filename):
-    """Nạp toàn bộ file vào RAM"""
+    """Nạp file vào RAM"""
     numbers = []
     if not os.path.exists(filename): return numbers
     with open(filename, "rb") as f:
@@ -20,10 +21,12 @@ def read_binary_file(filename):
             numbers = list(struct.unpack(f"{count}d", data))
     return numbers
 
+
 def write_binary_file(filename, numbers):
     with open(filename, "wb") as f:
         for number in numbers:
             f.write(struct.pack("d", number))
+
 
 def create_runs_dynamic(input_file, k):
     """Chia file thành các Run đã sort"""
@@ -42,12 +45,15 @@ def create_runs_dynamic(input_file, k):
         run_files.append(run_name)
     return run_files
 
+
 def fast_merge_only(run_files, output_file):
-    """Trộn nhanh không lưu steps"""
+    """Trộn nhanh toàn bộ file để Download"""
     handles = [open(f, "rb") for f in run_files]
+
     def get_val(f):
         data = f.read(8)
         return struct.unpack("d", data)[0] if data else None
+
     heap = []
     for i, h in enumerate(handles):
         val = get_val(h)
@@ -60,8 +66,9 @@ def fast_merge_only(run_files, output_file):
             if next_val is not None: heapq.heappush(heap, (next_val, idx))
     for h in handles: h.close()
 
+
 def merge_runs_with_blocks(run_files, output_file, block_size):
-    """Trộn và lưu các bước cho Visualize"""
+    """Trộn dữ liệu và lưu lại từng bước minh họa"""
     handles = [open(f, "rb") for f in run_files]
     buffers = [[] for _ in run_files]
     io_reads = 0
@@ -103,13 +110,15 @@ def merge_runs_with_blocks(run_files, output_file, block_size):
     for h in handles: h.close()
     return steps
 
+
 @app.route("/")
 def index():
     return render_template("index.html")
 
+
 @app.route("/upload", methods=["POST"])
 def upload():
-    """BƯỚC 1: CHỈ SORT VÀ XUẤT FILE"""
+    """GIAI ĐOẠN 1: SẮP XẾP TOÀN BỘ FILE"""
     file = request.files.get("file")
     k_way = max(2, min(int(request.form.get("k_way", 4)), 20))
     if not file: return jsonify({"error": "No file"}), 400
@@ -117,20 +126,32 @@ def upload():
     file.save(input_path)
     runs = create_runs_dynamic(input_path, k_way)
     fast_merge_only(runs, "output/sorted.bin")
-    return jsonify({"status": "HỆ THỐNG ĐÃ SẮP XẾP XONG!"})
+    return jsonify({"status": "FILE GỐC ĐÃ SORT XONG!"})
+
 
 @app.route("/prepare_visualize", methods=["POST"])
 def prepare_visualize():
-    """BƯỚC 2: TÍNH TOÁN CÁC BƯỚC MÔ PHỎNG"""
+    """GIAI ĐOẠN 2: CHỈ MINH HỌA 500 PHẦN TỬ ĐẦU TIÊN"""
     block_size = int(request.form.get("block_size", 5))
     k_way = int(request.form.get("k_way", 4))
-    runs = create_runs_dynamic("uploads/input.bin", k_way)
-    steps = merge_runs_with_blocks(runs, "output/sorted.bin", block_size)
-    return jsonify({"steps": steps})
+
+    # Cắt lấy 500 số đầu tiên để làm minh họa
+    input_path = "uploads/input.bin"
+    viz_temp_path = "uploads/viz_limit.bin"
+    with open(input_path, "rb") as f_in:
+        data = f_in.read(500 * 8)  # Đọc tối đa 500 số (8 bytes/số)
+    with open(viz_temp_path, "wb") as f_out:
+        f_out.write(data)
+
+    runs = create_runs_dynamic(viz_temp_path, k_way)
+    steps = merge_runs_with_blocks(runs, "output/viz_sorted.bin", block_size)
+    return jsonify({"steps": steps, "is_limited": True})
+
 
 @app.route('/download')
 def download_file():
     return send_from_directory("output", "sorted.bin", as_attachment=True)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

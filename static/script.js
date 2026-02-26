@@ -1,7 +1,8 @@
 let animationInterval = null;
 let isPaused = false;
-let animationSpeed = 800; // Mặc định 800ms
+let animationSpeed = 800;
 let cachedSteps = [];
+let selectedFile = null;
 let currentIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,7 +38,8 @@ async function triggerSort() {
         document.getElementById('info-status').innerText = data.status;
         document.getElementById('btn-visualize').style.display = 'none';
         document.getElementById('btn-prep-viz').style.display = 'block';
-    } catch (e) { alert("Lỗi khi Sort!"); }
+        showToast("Sắp xếp file gốc thành công! Hãy tải về.");
+    } catch (e) { alert("Lỗi Sort!"); }
 }
 
 async function requestVisualize() {
@@ -56,17 +58,8 @@ async function requestVisualize() {
         cachedSteps = data.steps;
         loading.style.display = 'none';
         document.getElementById('btn-visualize').style.display = 'block';
-        showToast("Dữ liệu mô phỏng đã nạp xong!");
-    } catch (e) { alert("Lỗi nạp mô phỏng!"); btnPrep.style.display = 'block'; }
-}
-
-function showPage(id) {
-    document.querySelectorAll('#start-screen, #upload-screen, #visualize-screen').forEach(p => p.style.display = 'none');
-    document.getElementById(id).style.display = 'block';
-    if(id !== 'visualize-screen') {
-        clearInterval(animationInterval);
-        isPaused = false;
-    }
+        showToast("Đã nạp 500 phần tử đầu tiên để minh họa!");
+    } catch (e) { alert("Lỗi nạp!"); btnPrep.style.display = 'block'; }
 }
 
 function togglePlayPause() {
@@ -74,29 +67,27 @@ function togglePlayPause() {
     if (isPaused) {
         isPaused = false;
         btn.innerText = "PAUSE";
-        btn.style.borderColor = "#00ff88";
-        btn.style.color = "#00ff88";
-        startAnimation(); // Tiếp tục chạy
+        startAnimation();
     } else {
         isPaused = true;
-        btn.innerText = "CONTINUE";
-        btn.style.borderColor = "#ff9f0a";
-        btn.style.color = "#ff9f0a";
-        clearInterval(animationInterval); // Dừng lại
+        btn.innerText = "PLAY";
+        clearInterval(animationInterval);
     }
 }
 
-function updateSpeed(val) {
-    animationSpeed = parseInt(val);
-    document.getElementById('speedDisplay').innerText = val + "ms";
-    // Nếu đang chạy thì khởi động lại interval với tốc độ mới
+function updateSpeed(v) {
+    animationSpeed = parseInt(v);
     if (!isPaused && animationInterval) {
         clearInterval(animationInterval);
         startAnimation();
     }
 }
 
-
+function showPage(id) {
+    document.querySelectorAll('#start-screen, #upload-screen, #visualize-screen').forEach(p => p.style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+    if(id !== 'visualize-screen') { clearInterval(animationInterval); isPaused = false; }
+}
 
 function goToVisualize() {
     currentIndex = 0;
@@ -107,24 +98,18 @@ function goToVisualize() {
 function startAnimation() {
     const slider = document.getElementById("stepSlider");
     slider.max = cachedSteps.length - 1;
-
     if (animationInterval) clearInterval(animationInterval);
-
     animationInterval = setInterval(() => {
-        if (currentIndex >= cachedSteps.length) {
-            clearInterval(animationInterval);
-            return;
-        }
-
+        if (currentIndex >= cachedSteps.length) return clearInterval(animationInterval);
         drawState(cachedSteps[currentIndex]);
         slider.value = currentIndex;
         document.getElementById("stepDisplay").innerText = `${currentIndex + 1}/${cachedSteps.length}`;
         currentIndex++;
-    }, animationSpeed); // Sử dụng biến animationSpeed thay vì 800 cố định
+    }, animationSpeed);
 }
 
 function drawState(step) {
-    document.getElementById("io-display").innerText = `DISK READS: ${step.io_reads}`;
+    document.getElementById("io-display").innerText = `READS: ${step.io_reads}`;
     drawRuns(step.runs_full, step.pointers);
     drawBuffers(step.buffers);
     drawHeap(step.heap);
@@ -132,8 +117,7 @@ function drawState(step) {
     drawOutput(step.output);
 }
 
-// --- CÁC HÀM VẼ CHI TIẾT ---
-
+// --- CÁC HÀM VẼ ---
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {
@@ -162,73 +146,54 @@ function drawBuffers(buffers) {
     });
 }
 
-/** HÀM VẼ CÂY MIN-HEAP CHUẨN **/
 function drawHeap(heap) {
-    const container = document.getElementById("heap");
-    container.innerHTML = "";
+    const container = document.getElementById("heap"); container.innerHTML = "";
     if (heap.length === 0) return;
-
     const width = container.clientWidth || 500;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", "100%");
-    svg.setAttribute("height", "200");
-
-    const levelHeight = 50;
-    const nodeRadius = 18;
-    const positions = [];
-
-    // Tính toán tọa độ cho từng node
+    svg.setAttribute("width", "100%"); svg.setAttribute("height", "180");
+    const levelH = 45;
+    const pos = [];
     for (let i = 0; i < heap.length; i++) {
-        const level = Math.floor(Math.log2(i + 1));
-        const indexInLevel = i - (Math.pow(2, level) - 1);
-        const nodesInLevel = Math.pow(2, level);
-        const x = (width / (nodesInLevel + 1)) * (indexInLevel + 1);
-        const y = 30 + level * levelHeight;
-        positions.push({ x, y });
+        const lv = Math.floor(Math.log2(i + 1));
+        const idxInLv = i - (Math.pow(2, lv) - 1);
+        const x = (width / (Math.pow(2, lv) + 1)) * (idxInLv + 1);
+        const y = 25 + lv * levelH;
+        pos.push({ x, y });
     }
-
-    // Vẽ đường kẻ nối (vẽ trước để nằm dưới node)
     for (let i = 0; i < heap.length; i++) {
-        const left = 2 * i + 1;
-        const right = 2 * i + 2;
-        [left, right].forEach(childIdx => {
-            if (childIdx < heap.length) {
+        const L = 2 * i + 1; const R = 2 * i + 2;
+        [L, R].forEach(cIdx => {
+            if (cIdx < heap.length) {
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", positions[i].x); line.setAttribute("y1", positions[i].y);
-                line.setAttribute("x2", positions[childIdx].x); line.setAttribute("y2", positions[childIdx].y);
-                line.setAttribute("stroke", "#444"); line.setAttribute("stroke-width", "2");
-                svg.appendChild(line);
+                line.setAttribute("x1", pos[i].x); line.setAttribute("y1", pos[i].y);
+                line.setAttribute("x2", pos[cIdx].x); line.setAttribute("y2", pos[cIdx].y);
+                line.setAttribute("stroke", "#444"); svg.appendChild(line);
             }
         });
     }
-
-    // Vẽ các nút tròn và số
     for (let i = 0; i < heap.length; i++) {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("cx", positions[i].x); circle.setAttribute("cy", positions[i].y);
-        circle.setAttribute("r", nodeRadius); circle.setAttribute("fill", "#161b22");
-        circle.setAttribute("stroke", "#00d2ff"); circle.setAttribute("stroke-width", "2");
-
-        const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        txt.setAttribute("x", positions[i].x); txt.setAttribute("y", positions[i].y + 5);
-        txt.setAttribute("text-anchor", "middle"); txt.setAttribute("fill", "white");
-        txt.setAttribute("font-size", "11px"); txt.textContent = heap[i].toFixed(1);
-
-        g.appendChild(circle); g.appendChild(txt);
-        svg.appendChild(g);
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", pos[i].x); c.setAttribute("cy", pos[i].y); c.setAttribute("r", "16");
+        c.setAttribute("fill", "#161b22"); c.setAttribute("stroke", "#00d2ff");
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", pos[i].x); t.setAttribute("y", pos[i].y + 4);
+        t.setAttribute("text-anchor", "middle"); t.setAttribute("fill", "white");
+        t.setAttribute("font-size", "10px"); t.textContent = heap[i].toFixed(1);
+        g.appendChild(c); g.appendChild(t); svg.appendChild(g);
     }
     container.appendChild(svg);
 }
 
 function drawPicked(v) {
     const c = document.getElementById("picked"); c.innerHTML = "";
-    if (v != null) { const b = document.createElement("div"); b.className = "box picked-box"; b.innerText = v.toFixed(1); c.appendChild(b); }
+    if (v != null) { const b = document.createElement("div"); b.className = "box"; b.innerText = v.toFixed(1); c.appendChild(b); }
 }
 
 function drawOutput(out) {
     const c = document.getElementById("output"); c.innerHTML = "";
-    out.slice(-20).forEach(v => {
+    out.slice(-24).forEach(v => {
         const b = document.createElement("div"); b.className = "box output-box"; b.innerText = v.toFixed(1); c.appendChild(b);
     });
 }
@@ -239,10 +204,5 @@ function showToast(m) {
     setTimeout(() => t.remove(), 3000);
 }
 
-function seekStep(v) {
-    // Khi người dùng kéo thanh trượt, tạm dừng để tránh xung đột
-    if (!isPaused) togglePlayPause();
-    currentIndex = parseInt(v);
-    drawState(cachedSteps[currentIndex]);
-    document.getElementById("stepDisplay").innerText = `${currentIndex + 1}/${cachedSteps.length}`;
-}
+function seekStep(v) { pauseAnimation(); currentIndex = parseInt(v); drawState(cachedSteps[currentIndex]); }
+function pauseAnimation() { clearInterval(animationInterval); isPaused = true; document.getElementById('btn-play-pause').innerText = "PLAY"; }

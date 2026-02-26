@@ -16,8 +16,8 @@
     <div id="upload-screen" style="display: none;">
         <header class="game-header"><h1>STAGING <span>AREA</span></h1></header>
         <div class="upload-container">
-            <div class="game-panel" style="width: 400px; margin-bottom: 20px;">
-                <h2><span class="icon">⚙️</span> CONFIGURATION</h2>
+            <div class="game-panel" style="width: 420px; margin-bottom: 20px;">
+                <h2><span class="icon">⚙️</span> CẤU HÌNH</h2>
                 <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
                     <label>BLOCK SIZE (B):</label>
                     <input type="number" id="blockSizeInput" value="5" min="1" max="100" class="input-game">
@@ -32,30 +32,30 @@
             </div>
 
             <input type="file" id="fileInput" hidden onchange="handleFileSelect()">
-            <label for="fileInput" id="fileInputLabel" class="btn-game highlight">1. CHỌN FILE DỮ LIỆU (.BIN)</label>
+            <label for="fileInput" id="fileInputLabel" class="btn-game highlight">1. CHỌN FILE (.BIN)</label>
 
-            <div id="file-ready-area" class="game-panel" style="margin-top: 20px; display: none; width: 400px;">
+            <div id="file-ready-area" class="game-panel" style="margin-top: 20px; display: none; width: 420px;">
                 <p>File: <span id="info-filename" class="neon-text"></span></p>
                 <button id="btn-start-sort" onclick="triggerSort()" class="btn-game" style="width: 100%; background: #ff9f0a; color: #000;">
-                    2. START SORTING
+                    2. THỰC HIỆN SORT TOÀN BỘ
                 </button>
             </div>
 
-            <div id="result-area" class="game-panel" style="margin-top: 20px; display: none; width: 400px;">
-                <p>Trạng thái: <span id="info-status" class="neon-text">COMPLETED</span></p>
+            <div id="result-area" class="game-panel" style="margin-top: 20px; display: none; width: 420px;">
+                <p>Trạng thái: <span id="info-status" class="neon-text">XONG</span></p>
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
                     <a href="/download" id="btn-download" class="btn-game" style="text-decoration: none; background: #00ff88; color: #000; text-align: center;">
-                        📥 TẢI FILE KẾT QUẢ (.BIN)
+                        📥 TẢI FILE KẾT QUẢ ĐẦY ĐỦ
                     </a>
                     <button id="btn-prep-viz" onclick="requestVisualize()" class="btn-game" style="background: #00d2ff; color: #000;">
-                        👁️ CHUẨN BỊ MÔ PHỎNG (VISUALIZE)
+                        👁️ CHUẨN BỊ MÔ PHỎNG (500 PT)
                     </button>
                     <button id="btn-visualize" onclick="goToVisualize()" class="btn-game" style="display: none; border-color: gold; color: gold;">
                         🚀 XEM ANIMATION
                     </button>
                 </div>
                 <div id="viz-loading" style="display: none; text-align: center; margin-top: 10px;">
-                    <div class="loader-small"></div> <small>Đang tạo các bước...</small>
+                    <div class="loader-small"></div> <small>Đang nạp 500 số đầu...</small>
                 </div>
             </div>
 
@@ -65,29 +65,26 @@
 
     <div id="visualize-screen" style="display: none;">
         <header class="game-header">
-            <button onclick="showPage('upload-screen')" class="btn-game">BACK</button>
+            <button onclick="showPage('upload-screen')" class="btn-game">QUAY LẠI</button>
             <div class="timeline-box">
-                <span id="io-display" class="neon-text">DISK READS: 0</span>
+                <span id="io-display" class="neon-text" style="margin-right: 15px;">READS: 0</span>
                 <input type="range" id="stepSlider" min="0" value="0" oninput="seekStep(this.value)">
                 <span id="stepDisplay">0/0</span>
-
-            <div style="display: inline-flex; gap: 10px; margin-left: 20px; align-items: center;">
-                <button id="btn-play-pause" onclick="togglePlayPause()" class="btn-game" style="border-color: #00ff88; color: #00ff88;">PAUSE</button>
-                <label style="font-size: 0.7rem; color: #888;">SPEED:</label>
-                <input type="range" id="speedSlider" min="50" max="2000" value="800" step="50" oninput="updateSpeed(this.value)" style="width: 100px; accent-color: #ff9f0a;">
-                <span id="speedDisplay" style="font-size: 0.8rem; min-width: 50px;">800ms</span>
-            </div>
+                <div style="display: inline-flex; gap: 8px; margin-left: 15px;">
+                    <button id="btn-play-pause" onclick="togglePlayPause()" class="btn-game" style="font-size: 0.7rem; padding: 5px 10px;">PAUSE</button>
+                    <input type="range" id="speedSlider" min="50" max="1500" value="800" oninput="updateSpeed(this.value)" style="width: 70px;">
+                </div>
             </div>
         </header>
         <main class="dashboard">
             <div class="left-col">
-                <section class="game-panel"><h2>💾 RUNS ON DISK</h2><div id="runs" class="runs-container"></div></section>
+                <section class="game-panel"><h2>💾 RUNS ON DISK (LIMIT 500)</h2><div id="runs" class="runs-container"></div></section>
                 <section class="game-panel"><h2>🧠 RAM BUFFERS</h2><div id="buffers-area"></div></section>
             </div>
             <div class="right-col">
                 <section class="game-panel"><h2>🌳 MIN-HEAP TREE</h2><div id="heap"></div></section>
-                <section class="game-panel"><h2>🎯 CURRENT PICKED</h2><div id="picked"></div></section>
-                <section class="game-panel"><h2>📊 FINAL OUTPUT</h2><div id="output" class="output-grid"></div></section>
+                <section class="game-panel"><h2>🎯 PICKED</h2><div id="picked"></div></section>
+                <section class="game-panel"><h2>📊 OUTPUT (PREVIEW)</h2><div id="output" class="output-grid"></div></section>
             </div>
         </main>
     </div>

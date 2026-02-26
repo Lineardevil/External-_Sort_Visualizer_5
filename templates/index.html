@@ -17,7 +17,7 @@
         <header class="game-header"><h1>STAGING <span>AREA</span></h1></header>
         <div class="upload-container">
             <div class="game-panel" style="width: 420px; margin-bottom: 20px;">
-                <h2><span class="icon">⚙️</span> CẤU HÌNH</h2>
+                <h2><span class="icon">⚙️</span> CONFIGURATION </h2>
                 <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
                     <label>BLOCK SIZE (B):</label>
                     <input type="number" id="blockSizeInput" value="5" min="1" max="100" class="input-game">
@@ -32,30 +32,30 @@
             </div>
 
             <input type="file" id="fileInput" hidden onchange="handleFileSelect()">
-            <label for="fileInput" id="fileInputLabel" class="btn-game highlight">1. CHỌN FILE (.BIN)</label>
+            <label for="fileInput" id="fileInputLabel" class="btn-game highlight">SELECT FILE (.bin)</label>
 
             <div id="file-ready-area" class="game-panel" style="margin-top: 20px; display: none; width: 420px;">
                 <p>File: <span id="info-filename" class="neon-text"></span></p>
                 <button id="btn-start-sort" onclick="triggerSort()" class="btn-game" style="width: 100%; background: #ff9f0a; color: #000;">
-                    2. THỰC HIỆN SORT TOÀN BỘ
+                    SORT
                 </button>
             </div>
 
             <div id="result-area" class="game-panel" style="margin-top: 20px; display: none; width: 420px;">
-                <p>Trạng thái: <span id="info-status" class="neon-text">XONG</span></p>
+                <p>STATUS: <span id="info-status" class="neon-text">SORT COMPLETED</span></p>
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
                     <a href="/download" id="btn-download" class="btn-game" style="text-decoration: none; background: #00ff88; color: #000; text-align: center;">
-                        📥 TẢI FILE KẾT QUẢ ĐẦY ĐỦ
+                        DOWNLOAD SORTED FILE
                     </a>
                     <button id="btn-prep-viz" onclick="requestVisualize()" class="btn-game" style="background: #00d2ff; color: #000;">
-                        👁️ CHUẨN BỊ MÔ PHỎNG (500 PT)
+                        PREPARE TO VISUALIZE
                     </button>
                     <button id="btn-visualize" onclick="goToVisualize()" class="btn-game" style="display: none; border-color: gold; color: gold;">
-                        🚀 XEM ANIMATION
+                        WATCH VISUALIZATION
                     </button>
                 </div>
                 <div id="viz-loading" style="display: none; text-align: center; margin-top: 10px;">
-                    <div class="loader-small"></div> <small>Đang nạp 500 số đầu...</small>
+                    <div class="loader-small"></div> <small>Simulate with first 500 values...</small>
                 </div>
             </div>
 

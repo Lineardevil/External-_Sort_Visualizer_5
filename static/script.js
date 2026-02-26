@@ -4,95 +4,105 @@ let currentIndex = 0;
 let cachedSteps = [];
 
 /**
- * CHUYỂN TRANG & DỌN DẸP
+ * 1. KHỞI TẠO & LẮNG NGHE SỰ KIỆN
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    // Tự động cập nhật dự báo RAM khi người dùng thay đổi thông số
+    const inputs = ['blockSizeInput', 'kWayInput'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', updateRamEstimate);
+    });
+    updateRamEstimate();
+});
+
+function updateRamEstimate() {
+    const b = parseInt(document.getElementById('blockSizeInput').value) || 0;
+    const k = parseInt(document.getElementById('kWayInput').value) || 0;
+    const total = (k * b) + k; // Công thức: (k * block) + heap
+
+    const el = document.getElementById('ram-estimate');
+    if (el) {
+        el.innerText = total;
+        // Cảnh báo màu đỏ nếu dùng quá nhiều RAM ảo (> 300 pt)
+        el.style.color = total > 300 ? "#ff4d4d" : "var(--neon-orange)";
+    }
+}
+
+/**
+ * 2. XỬ LÝ FILE & UPLOAD (Bản nâng cấp)
+ */
+function handleFileSelect() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) return;
+
+    const n = Math.floor(file.size / 8);
+    document.getElementById('file-info').style.display = 'block';
+    document.getElementById('info-n').innerText = n;
+
+    // Reset trạng thái UI trước khi bắt đầu
+    document.getElementById('btn-visualize').style.display = 'none';
+    document.getElementById('info-status').innerText = "READY TO PROCESS";
+
+    // Tự động chạy Sort
+    autoUploadAndSort(file);
+}
+
+async function autoUploadAndSort(file) {
+    const statusEl = document.getElementById('info-status');
+    const loadingArea = document.getElementById('loading-area');
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("block_size", document.getElementById('blockSizeInput').value);
+    formData.append("k_way", document.getElementById('kWayInput').value);
+
+    // Bắt đầu quá trình
+    loadingArea.style.display = 'block';
+    statusEl.innerText = "UPLOADING FILE...";
+    statusEl.classList.add("neon-text");
+
+    try {
+        const response = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) throw new Error("Server error: " + response.statusText);
+
+        const data = await response.json();
+        statusEl.innerText = "SORTING & GENERATING STEPS...";
+
+        if (data.steps && data.steps.length > 0) {
+            cachedSteps = data.steps;
+            currentIndex = 0;
+
+            // Hoàn tất
+            loadingArea.style.display = 'none';
+            statusEl.innerText = "COMPLETED SUCCESSFULLY";
+            document.getElementById('info-output').innerText = data.output_status;
+            document.getElementById('btn-visualize').style.display = 'inline-block';
+            showToast("Sắp xếp hoàn tất! Sẵn sàng mô phỏng.");
+        } else if (data.is_too_large) {
+            loadingArea.style.display = 'none';
+            statusEl.innerText = "FILE TOO LARGE - DOWNLOAD ONLY";
+            showToast("File quá lớn, hệ thống đã tối ưu bằng cách bỏ qua Visualize.");
+        }
+    } catch (err) {
+        loadingArea.style.display = 'none';
+        statusEl.innerText = "ERROR OCCURRED";
+        alert("Lỗi: " + err.message);
+    }
+}
+
+/**
+ * 3. HỆ THỐNG ANIMATION & VẼ (Giữ nguyên logic cũ nhưng tối ưu hiển thị)
  */
 function showPage(pageId) {
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('upload-screen').style.display = 'none';
     document.getElementById('visualize-screen').style.display = 'none';
     document.getElementById(pageId).style.display = 'block';
-
-    // Dừng toàn bộ animation khi chuyển trang để tránh lỗi bộ nhớ
-    pauseAnimation();
-}
-
-function handleFileSelect() {
-    const file = document.getElementById('fileInput').files[0];
-    if (file) {
-        const n = Math.floor(file.size / 8);
-        const k = Math.ceil(Math.sqrt(n));
-
-        document.getElementById('file-info').style.display = 'block';
-        document.getElementById('info-n').innerText = n;
-        document.getElementById('info-k').innerText = k;
-        document.getElementById('btn-sort').style.display = 'inline-block';
-    }
-}
-
-function showToast(message) {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerText = message;
-    container.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 5000); // Giảm thời gian thông báo xuống 5s cho gọn
-}
-
-/**
- * XỬ LÝ LOGIC SORT
- */
-
-
-function handleFileSelect() {
-    const file = document.getElementById('fileInput').files[0];
-    if (!file) return;
-
-    // Hiển thị thông tin cơ bản trước
-    const n = Math.floor(file.size / 8);
-    const k = Math.ceil(Math.sqrt(n));
-    document.getElementById('file-info').style.display = 'block';
-    document.getElementById('info-n').innerText = n;
-    document.getElementById('info-k').innerText = k;
-    document.getElementById('info-status').innerText = "PROCESSING...";
-
-    // Tự động chạy Sort ngay khi chọn file
-    autoUploadAndSort(file);
-}
-
-function autoUploadAndSort(file) {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("block_size", document.getElementById('blockSizeInput').value);
-
-    document.getElementById('loading-area').style.display = 'block';
-
-    fetch("/upload", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById('loading-area').style.display = 'none';
-
-        // Cập nhật thông tin file kết quả ngay lập tức
-        const statusEl = document.getElementById('info-status');
-        const outputEl = document.getElementById('info-output');
-        if (statusEl) statusEl.innerText = "COMPLETED";
-        if (outputEl) outputEl.innerText = data.output_status;
-
-        // Lưu steps vào bộ nhớ đệm
-        if (data.steps && data.steps.length > 0) {
-            cachedSteps = data.steps;
-            document.getElementById('btn-visualize').style.display = 'inline-block';
-            showToast("Sắp xếp thành công! Bạn có thể xem mô phỏng.");
-        } else {
-            showToast("File quá lớn, đã xuất file kết quả trực tiếp.");
-        }
-    })
-    .catch(err => {
-        document.getElementById('loading-area').style.display = 'none';
-        alert("Lỗi: " + err.message);
-    });
+    if (pageId !== 'visualize-screen') pauseAnimation();
 }
 
 function goToVisualize() {
@@ -104,19 +114,15 @@ function goToVisualize() {
     }
 }
 
-/**
- * HỆ THỐNG ANIMATION
- */
 function startAnimation() {
     const slider = document.getElementById("stepSlider");
     if (slider) slider.max = currentSteps.length - 1;
-
     if (animationInterval) clearInterval(animationInterval);
 
     animationInterval = setInterval(() => {
         if (currentIndex >= currentSteps.length) {
             clearInterval(animationInterval);
-            showToast("Hoàn tất quá trình sắp xếp!");
+            showToast("Hoàn tất mô phỏng thuật toán!");
             return;
         }
         drawState(currentSteps[currentIndex]);
@@ -131,6 +137,20 @@ function updateSliderDisplay() {
     if (slider) slider.value = currentIndex;
     if (display) display.innerText = `${currentIndex + 1} / ${currentSteps.length}`;
 }
+
+function drawState(step) {
+    const ioDisplay = document.getElementById("io-display");
+    if (ioDisplay) ioDisplay.innerText = `DISK READS: ${step.io_reads}`;
+
+    drawRuns(step.runs_full, step.pointers);
+    drawBuffers(step.buffers);
+    drawHeap(step.heap);
+    drawPicked(step.picked);
+    drawOutput(step.output);
+}
+
+// --- CÁC HÀM VẼ (drawRuns, drawBuffers, drawHeap, drawPicked, drawOutput) ---
+// (Bạn copy lại từ file script.js cũ của bạn vì phần này đã hoạt động tốt)
 
 function drawState(step) {
     // 1. Cập nhật con số Disk Reads lên UI
@@ -303,11 +323,17 @@ function drawOutput(output) {
     });
 }
 
-/**
- * ĐIỀU KHIỂN
- */
+
+function showToast(message) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 5000);
+}
+
 function pauseAnimation() { clearInterval(animationInterval); animationInterval = null; }
-function resumeAnimation() { if (!animationInterval && currentIndex < currentSteps.length) startAnimation(); }
 function seekStep(idx) {
     pauseAnimation();
     currentIndex = parseInt(idx);

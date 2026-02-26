@@ -18,9 +18,16 @@
         <div class="upload-container">
             <div class="game-panel" style="width: 400px; margin-bottom: 20px;">
                 <h2><span class="icon">⚙️</span> CONFIGURATION</h2>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
                     <label>BLOCK SIZE (RAM):</label>
-                    <input type="number" id="blockSizeInput" value="5" min="1" max="20" class="input-game">
+                    <input type="number" id="blockSizeInput" value="5" min="1" max="100" class="input-game">
+                </div>
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
+                    <label>K-WAY MERGE:</label>
+                    <input type="number" id="kWayInput" value="4" min="2" max="20" class="input-game">
+                </div>
+                <div style="border-top: 1px solid var(--border-color); pt-10; margin-top: 10px;">
+                    <p style="font-size: 0.8rem;">Dự kiến RAM dùng: <span id="ram-estimate" class="neon-text">0</span> số</p>
                 </div>
             </div>
 

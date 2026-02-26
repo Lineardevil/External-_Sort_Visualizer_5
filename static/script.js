@@ -2,6 +2,7 @@ let animationInterval = null;
 let currentSteps = [];
 let currentIndex = 0;
 let cachedSteps = [];
+let selectedFile = null;
 
 /**
  * 1. KHỞI TẠO & THEO DÕI CẤU HÌNH
@@ -327,4 +328,64 @@ function showToast(msg) {
     toast.innerText = msg;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
+}
+
+function handleFileSelect() {
+    const fileInput = document.getElementById('fileInput');
+    selectedFile = fileInput.files[0];
+    if (!selectedFile) return;
+
+    // Hiển thị thông tin file và nút SORT
+    document.getElementById('file-ready-area').style.display = 'block';
+    document.getElementById('info-filename').innerText = selectedFile.name;
+    document.getElementById('info-n').innerText = Math.floor(selectedFile.size / 8);
+
+    // Ẩn khu vực kết quả cũ nếu có
+    document.getElementById('result-area').style.display = 'none';
+}
+
+function triggerSort() {
+    if (!selectedFile) return;
+    autoUploadAndSort(selectedFile);
+}
+
+async function autoUploadAndSort(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("block_size", document.getElementById('blockSizeInput').value);
+    formData.append("k_way", document.getElementById('kWayInput').value);
+
+    document.getElementById('loading-area').style.display = 'block';
+    document.getElementById('btn-start-sort').disabled = true;
+
+    try {
+        const response = await fetch("/upload", { method: "POST", body: formData });
+        const data = await response.json();
+
+        document.getElementById('loading-area').style.display = 'none';
+
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        // Hiển thị khu vực kết quả (Nút Download và Visualize)
+        document.getElementById('result-area').style.display = 'block';
+        document.getElementById('info-status').innerText = data.status;
+
+        if (data.steps && data.steps.length > 0) {
+            cachedSteps = data.steps;
+            document.getElementById('btn-visualize').style.display = 'inline-block';
+        } else {
+            document.getElementById('btn-visualize').style.display = 'none';
+        }
+
+        showToast("Hệ thống đã sắp xếp xong! Bạn có thể tải file ngay.");
+
+    } catch (err) {
+        document.getElementById('loading-area').style.display = 'none';
+        alert("Lỗi kết nối server!");
+    } finally {
+        document.getElementById('btn-start-sort').disabled = false;
+    }
 }

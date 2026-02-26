@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>External Sort Visualizer</title>
@@ -9,7 +9,7 @@
     <div id="start-screen">
         <div class="hero-content">
             <h1>EXTERNAL SORT<br><span>VISUALIZER</span></h1>
-            <button class="btn-start" onclick="showPage('upload-screen')">BẮT ĐẦU</button>
+            <button class="btn-start" onclick="showPage('upload-screen')">START SYSTEM</button>
         </div>
     </div>
 
@@ -17,74 +17,73 @@
         <header class="game-header"><h1>STAGING <span>AREA</span></h1></header>
         <div class="upload-container">
             <div class="game-panel" style="width: 420px; margin-bottom: 20px;">
-                <h2><span class="icon">⚙️</span> CONFIGURATION </h2>
-                <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
+                <h2><span class="icon">⚙️</span> CONFIGURATION</h2>
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                     <label>BLOCK SIZE (B):</label>
                     <input type="number" id="blockSizeInput" value="5" min="1" max="100" class="input-game">
                 </div>
-                <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                     <label>K-WAY MERGE (K):</label>
                     <input type="number" id="kWayInput" value="4" min="2" max="20" class="input-game">
                 </div>
-                <div style="border-top: 1px solid #333; padding-top: 10px;">
-                    <p style="font-size: 0.8rem;">Dự kiến RAM dùng: <span id="ram-estimate" class="neon-text">24</span> số</p>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;">
+                    <p style="font-size: 0.85rem;">Estimated RAM: <span id="ram-estimate" class="neon-text">24</span> elements</p>
                 </div>
             </div>
 
             <input type="file" id="fileInput" hidden onchange="handleFileSelect()">
-            <label for="fileInput" id="fileInputLabel" class="btn-game highlight">SELECT FILE (.bin)</label>
+            <label for="fileInput" id="fileInputLabel" class="btn-game highlight">1. SELECT BINARY FILE (.BIN)</label>
 
             <div id="file-ready-area" class="game-panel" style="margin-top: 20px; display: none; width: 420px;">
                 <p>File: <span id="info-filename" class="neon-text"></span></p>
-                <button id="btn-start-sort" onclick="triggerSort()" class="btn-game" style="width: 100%; background: #ff9f0a; color: #000;">
-                    SORT
+                <button id="btn-start-sort" onclick="triggerSort()" class="btn-game" style="width: 100%; background: var(--neon-orange); color: #000;">
+                    2. START SORTING FULL FILE
                 </button>
             </div>
 
             <div id="result-area" class="game-panel" style="margin-top: 20px; display: none; width: 420px;">
-                <p>STATUS: <span id="info-status" class="neon-text">SORT COMPLETED</span></p>
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                <p>Status: <span id="info-status" class="neon-text">COMPLETED</span></p>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
                     <a href="/download" id="btn-download" class="btn-game" style="text-decoration: none; background: #00ff88; color: #000; text-align: center;">
-                        DOWNLOAD SORTED FILE
+                         DOWNLOAD SORTED RESULT
                     </a>
-                    <button id="btn-prep-viz" onclick="requestVisualize()" class="btn-game" style="background: #00d2ff; color: #000;">
-                        PREPARE TO VISUALIZE
+                    <button id="btn-prep-viz" onclick="requestVisualize()" class="btn-game" style="background: var(--neon-blue); color: #000;">
+                         PREPARE VISUALIZATION (500 PT)
                     </button>
                     <button id="btn-visualize" onclick="goToVisualize()" class="btn-game" style="display: none; border-color: gold; color: gold;">
-                        WATCH VISUALIZATION
+                         WATCH ANIMATION
                     </button>
                 </div>
                 <div id="viz-loading" style="display: none; text-align: center; margin-top: 10px;">
-                    <div class="loader-small"></div> <small>Simulate with first 500 values...</small>
+                    <div class="loader-small"></div> <small>Generating steps for first 500 elements...</small>
                 </div>
             </div>
-
             <div id="loading-area" style="display: none; margin-top: 20px;"><div class="loader"></div></div>
         </div>
     </div>
 
     <div id="visualize-screen" style="display: none;">
         <header class="game-header">
-            <button onclick="showPage('upload-screen')" class="btn-game">QUAY LẠI</button>
+            <button onclick="showPage('upload-screen')" class="btn-game">BACK</button>
             <div class="timeline-box">
-                <span id="io-display" class="neon-text" style="margin-right: 15px;">READS: 0</span>
+                <span id="io-display" class="neon-text">DISK READS: 0</span>
                 <input type="range" id="stepSlider" min="0" value="0" oninput="seekStep(this.value)">
                 <span id="stepDisplay">0/0</span>
-                <div style="display: inline-flex; gap: 8px; margin-left: 15px;">
-                    <button id="btn-play-pause" onclick="togglePlayPause()" class="btn-game" style="font-size: 0.7rem; padding: 5px 10px;">PAUSE</button>
-                    <input type="range" id="speedSlider" min="50" max="1500" value="800" oninput="updateSpeed(this.value)" style="width: 70px;">
+                <div style="display: inline-flex; gap: 8px; margin-left: 15px; align-items: center;">
+                    <button id="btn-play-pause" onclick="togglePlayPause()" class="btn-game" style="font-size: 0.7rem;">PAUSE</button>
+                    <input type="range" id="speedSlider" min="50" max="2000" value="800" oninput="updateSpeed(this.value)" style="width: 80px;">
                 </div>
             </div>
         </header>
         <main class="dashboard">
             <div class="left-col">
-                <section class="game-panel"><h2>💾 RUNS ON DISK (LIMIT 500)</h2><div id="runs" class="runs-container"></div></section>
-                <section class="game-panel"><h2>🧠 RAM BUFFERS</h2><div id="buffers-area"></div></section>
+                <section class="game-panel"><h2> RUNS ON DISK (PREVIEW)</h2><div id="runs" class="runs-container"></div></section>
+                <section class="game-panel"><h2> RAM BUFFERS</h2><div id="buffers-area"></div></section>
             </div>
             <div class="right-col">
-                <section class="game-panel"><h2>🌳 MIN-HEAP TREE</h2><div id="heap"></div></section>
-                <section class="game-panel"><h2>🎯 PICKED</h2><div id="picked"></div></section>
-                <section class="game-panel"><h2>📊 OUTPUT (PREVIEW)</h2><div id="output" class="output-grid"></div></section>
+                <section class="game-panel"><h2> MIN-HEAP TREE</h2><div id="heap"></div></section>
+                <section class="game-panel"><h2> CURRENT PICKED</h2><div id="picked"></div></section>
+                <section class="game-panel"><h2> OUTPUT PREVIEW</h2><div id="output" class="output-grid"></div></section>
             </div>
         </main>
     </div>

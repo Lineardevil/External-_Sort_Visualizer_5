@@ -1,284 +1,191 @@
+/* --- GLOBAL STYLES --- */
 :root {
     --bg-dark: #0d1117;
     --panel-dark: #161b22;
     --neon-blue: #00d2ff;
     --neon-orange: #ff9f0a;
+    --neon-green: #00ff88;
     --text-main: #e6edf3;
     --border-color: #30363d;
+    --shadow-blue: 0 0 10px rgba(0, 210, 255, 0.3);
 }
 
 body {
     background-color: var(--bg-dark);
     color: var(--text-main);
-    font-family: 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
     margin: 0;
     overflow-x: hidden;
+    line-height: 1.6;
 }
 
-/* --- TRANG 1: GIỮ NGUYÊN --- */
+/* --- START SCREEN (LANDING) --- */
 #start-screen {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle, #1a1a2e 0%, #0d1117 100%);
+    background: radial-gradient(circle at center, #1a1a2e 0%, #0d1117 100%);
     display: flex; justify-content: center; align-items: center;
-    z-index: 1000; transition: opacity 0.5s ease;
+    text-align: center; z-index: 1000;
 }
+
 .hero-content h1 {
-    font-size: 4rem; color: #fff; letter-spacing: 5px; line-height: 1.2;
-    text-shadow: 0 0 15px var(--neon-blue);
+    font-size: 4.5rem; color: #fff; letter-spacing: 8px; margin: 0;
+    text-shadow: 0 0 20px var(--neon-blue);
 }
+
 .hero-content h1 span { color: var(--neon-blue); }
+
 .btn-start {
-    margin-top: 30px; padding: 20px 60px; font-size: 1.5rem; font-weight: bold;
-    color: #fff; background: transparent; border: 3px solid var(--neon-blue);
-    border-radius: 50px; cursor: pointer; transition: 0.3s;
-}
-.btn-start:hover { background: var(--neon-blue); box-shadow: 0 0 30px var(--neon-blue); transform: scale(1.05); }
-
-/* --- TRANG 2: ĐỒNG BỘ --- */
-#main-content { padding: 20px; animation: fadeIn 0.6s ease; }
-
-.game-header h1 { font-size: 1.5rem; margin-bottom: 20px; }
-.game-header h1 span { color: var(--neon-blue); }
-
-.btn-game {
-    padding: 8px 20px; background: transparent; border: 1px solid var(--neon-blue);
-    color: var(--neon-blue); cursor: pointer; margin: 5px; font-weight: bold;
-    text-transform: uppercase; font-size: 0.8rem; display: inline-block;
-}
-.btn-game:hover, .btn-game.highlight {
-    background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue);
+    margin-top: 40px; padding: 18px 50px; font-size: 1.4rem; font-weight: bold;
+    color: var(--neon-blue); background: transparent;
+    border: 2px solid var(--neon-blue); border-radius: 50px;
+    cursor: pointer; transition: all 0.4s ease;
 }
 
-.timeline-box { margin: 20px 0; background: var(--panel-dark); padding: 10px; border-radius: 4px; }
-#stepSlider { width: 50%; accent-color: var(--neon-blue); vertical-align: middle; }
+.btn-start:hover {
+    background: var(--neon-blue); color: #000;
+    box-shadow: 0 0 40px var(--neon-blue); transform: scale(1.05);
+}
 
+/* --- DASHBOARD LAYOUT --- */
+.game-header {
+    padding: 15px 30px; border-bottom: 1px solid var(--border-color);
+    background: rgba(22, 27, 34, 0.8); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+}
+
+.dashboard {
+    display: grid; grid-template-columns: 1.2fr 1fr; gap: 25px;
+    padding: 25px; max-width: 1600px; margin: 0 auto;
+}
+
+/* --- COMMON PANELS --- */
 .game-panel {
     background: var(--panel-dark); border: 1px solid var(--border-color);
-    border-radius: 6px; padding: 15px; margin-bottom: 20px; text-align: left;
+    border-radius: 10px; padding: 20px; margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: border 0.3s;
 }
-.game-panel h2 { font-size: 0.85rem; color: var(--neon-blue); margin-top: 0; margin-bottom: 15px; }
-.input-game {
-    background: #161b22;
-    border: 1px solid var(--neon-blue);
-    color: var(--neon-blue);
-    padding: 5px 10px;
-    border-radius: 4px;
-    width: 60px;
-    font-family: 'Orbitron', sans-serif;
-}
-/* Bố cục Runs (Hàng ngang) */
-.runs-container { display: flex; flex-direction: column; gap: 10px; }
-.run-row {
+
+.game-panel:hover { border-color: var(--neon-blue); }
+
+.game-panel h2 {
+    font-size: 0.9rem; color: var(--neon-blue); margin: 0 0 20px 0;
+    text-transform: uppercase; letter-spacing: 2px;
     display: flex; align-items: center; gap: 10px;
-    background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px;
-    overflow-x: auto; white-space: nowrap;
-}
-.run-label { min-width: 80px; font-weight: bold; color: var(--neon-blue); font-size: 0.8rem; }
-
-/* Bố cục Output (Dạng bảng/Grid) */
-.output-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 8px;
-}
-.loader {
-    border: 5px solid var(--panel-dark);
-    border-top: 5px solid var(--neon-blue);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-    margin: 20px auto;
 }
 
-.upload-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
+/* --- CONFIG & INPUTS --- */
+.input-game {
+    background: #0d1117; border: 1px solid var(--border-color);
+    color: var(--neon-blue); padding: 8px; border-radius: 5px;
+    width: 70px; text-align: center; outline: none;
 }
 
-#file-info p {
-    margin: 10px 0;
-    font-size: 1.1rem;
+.input-game:focus { border-color: var(--neon-blue); box-shadow: var(--shadow-blue); }
+
+.btn-game {
+    padding: 10px 25px; background: transparent; border: 1px solid var(--neon-blue);
+    color: var(--neon-blue); cursor: pointer; border-radius: 4px;
+    font-weight: bold; font-size: 0.8rem; text-transform: uppercase;
+    transition: 0.3s; text-decoration: none; display: inline-block;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.btn-game:hover { background: var(--neon-blue); color: #000; box-shadow: var(--shadow-blue); }
+.btn-game.highlight { background: rgba(0, 210, 255, 0.1); border-width: 2px; }
+
+/* --- RUNS & BUFFERS --- */
+.runs-container, #buffers-area {
+    display: flex; flex-direction: column; gap: 15px;
 }
 
-.neon-text {
-    color: var(--neon-orange);
-    font-weight: bold;
-    text-shadow: 0 0 5px var(--neon-orange);
+.run-row, .buffer-row {
+    background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d;
+    padding: 15px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 8px;
 }
-/* Các Box số */
+
+.run-label, .buffer-label {
+    width: 100%; color: var(--neon-blue); font-size: 0.8rem;
+    font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* --- BOXES (THE DATA ELEMENTS) --- */
 .box {
-    min-width: 55px; height: 45px;
-    background: #21262d; border: 1px solid var(--border-color);
+    width: 50px; height: 40px; background: #21262d;
+    border: 1px solid #30363d; border-radius: 4px;
     display: flex; justify-content: center; align-items: center;
-    border-radius: 4px; font-size: 13px; font-weight: bold;
-}
-/* Container cho Picked để đảm bảo nó luôn căn giữa và chiếm 1 hàng */
-.picked-full-row {
-    display: flex;
-    justify-content: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 15px;
+    font-size: 0.8rem; font-weight: bold; color: #fff;
+    transition: all 0.3s;
 }
 
-/* Container chứa các Run */
-.runs-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-/* Từng Run cụ thể */
-.run-row {
-    display: flex;
-    flex-wrap: wrap; /* Cho phép các box số xuống hàng */
-    gap: 8px;
-    background: rgba(0,0,0,0.2);
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-}
-
-/* Nhãn tiêu đề của Run (ví dụ: RUN #0) */
-.run-label {
-    width: 100%; /* Đẩy nhãn nằm riêng một hàng trên cùng của bảng */
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-    color: var(--neon-blue);
-    border-bottom: 1px solid rgba(0, 210, 255, 0.2);
-}
-
-/* Định dạng lại bảng Output theo dạng lưới (Grid) */
-.output-grid {
-    display: grid;
-    /* Tự động chia cột, mỗi cột rộng tối thiểu 60px */
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 10px;
-    max-height: 300px; /* Giới hạn chiều cao nếu quá nhiều số */
-    overflow-y: auto;  /* Hiện thanh cuộn khi bảng quá dài */
-    padding: 10px;
-}
-
-/* Chỉnh lại Box của Output để đồng bộ */
+.buffer-box { border-color: var(--neon-blue); }
 .output-box {
-    background: #238636 !important; /* Màu xanh lá đặc trưng của Output */
-    border-color: #2ea043 !important;
-    width: 100% !important; /* Để nó lấp đầy ô lưới */
-    height: 40px;
+    background: #238636 !important; border-color: #2ea043 !important;
+    animation: fadeIn 0.4s ease;
 }
-.output-box { background: #238636; border-color: #2ea043; }
 
-.center-content { display: flex; justify-content: center; }
+/* --- MIN-HEAP TREE --- */
+#heap {
+    min-height: 200px; display: flex; justify-content: center;
+    background: radial-gradient(circle at center, rgba(0, 210, 255, 0.05) 0%, transparent 70%);
+}
+
+#picked {
+    display: flex; justify-content: center; align-items: center; height: 60px;
+}
+
+.picked-box {
+    border: 2px solid var(--neon-orange); color: var(--neon-orange);
+    box-shadow: 0 0 15px var(--neon-orange); transform: scale(1.2);
+}
+
+/* --- OUTPUT GRID --- */
+.output-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;
+}
+
+.output-grid::-webkit-scrollbar { width: 6px; }
+.output-grid::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+
+/* --- TIMELINE & SLIDERS --- */
+.timeline-box {
+    display: flex; align-items: center; gap: 20px; flex-grow: 1;
+    background: #0d1117; padding: 10px 20px; border-radius: 50px; border: 1px solid #30363d;
+}
+
+input[type=range] {
+    flex-grow: 1; cursor: pointer; accent-color: var(--neon-blue);
+}
+
+/* --- UTILS --- */
+.neon-text { color: var(--neon-orange); text-shadow: 0 0 5px var(--neon-orange); font-weight: bold; }
+
 .loader {
-    border: 5px solid var(--panel-dark);
-    border-top: 5px solid var(--neon-blue);
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    animation: spin 1s linear infinite;
-    margin: 20px auto;
+    width: 50px; height: 50px; border: 4px solid var(--panel-dark);
+    border-top: 4px solid var(--neon-blue); border-radius: 50%;
+    animation: spin 1s linear infinite; margin: 20px auto;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.loader-small {
+    width: 18px; height: 18px; border: 2px solid transparent;
+    border-top-color: var(--neon-blue); border-radius: 50%;
+    animation: spin 0.8s linear infinite; display: inline-block;
 }
+
+.toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 2000; }
+.toast {
+    background: #1f2937; color: white; padding: 16px 28px; border-radius: 8px;
+    border-left: 4px solid var(--neon-green); margin-bottom: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4); animation: slideIn 0.4s ease-out;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 .upload-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 70vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 80vh; text-align: center;
 }
-.toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 9999;
-}
-.toast {
-    background: var(--panel-dark);
-    border-left: 5px solid var(--neon-orange);
-    color: white;
-    padding: 15px 25px;
-    margin-top: 10px;
-    border-radius: 4px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-    animation: slideIn 0.5s ease, fadeOut 0.5s linear 10.5s forwards;
-}
-/* Đồng bộ cấu trúc hàng của Buffer giống Run */
-.buffer-row {
-    display: flex;
-    flex-wrap: wrap; /* Cho phép các box số xuống hàng nếu quá dài */
-    gap: 8px;
-    background: rgba(0, 210, 255, 0.05); /* Màu nền xanh nhẹ để phân biệt với Run */
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    margin-bottom: 15px;
-}
-
-/* Nhãn tiêu đề nằm riêng một hàng phía trên các ô số */
-.buffer-label {
-    width: 100%;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-    color: var(--neon-blue);
-    font-weight: bold;
-    border-bottom: 1px solid rgba(0, 210, 255, 0.2);
-    padding-bottom: 4px;
-}
-
-/* Đảm bảo các box bên trong Buffer đồng bộ kích thước */
-.buffer-box {
-    min-width: 55px;
-    height: 45px;
-    border-color: var(--neon-blue) !important;
-}
-
-/* Định dạng lại bảng Output theo dạng lưới chuyên nghiệp */
-.output-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); /* Tự động chia cột đều nhau */
-    gap: 10px;
-    max-height: 400px; /* Giới hạn chiều cao để không đẩy giao diện quá dài */
-    overflow-y: auto;  /* Hiện thanh cuộn khi dữ liệu nhiều */
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
-/* Tùy chỉnh thanh cuộn cho đẹp */
-.output-grid::-webkit-scrollbar {
-    width: 6px;
-}
-.output-grid::-webkit-scrollbar-thumb {
-    background: var(--neon-blue);
-    border-radius: 10px;
-}
-
-/* Box số trong Output */
-.output-box {
-    background: #238636 !important; /* Màu xanh lá biểu thị dữ liệu đã xong */
-    border-color: #2ea043 !important;
-    color: white;
-    box-shadow: 0 0 5px rgba(46, 160, 67, 0.4);
-    transition: all 0.3s ease;
-}
-
-@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

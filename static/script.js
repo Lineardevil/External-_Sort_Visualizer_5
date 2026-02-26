@@ -38,8 +38,8 @@ async function triggerSort() {
         document.getElementById('info-status').innerText = data.status;
         document.getElementById('btn-visualize').style.display = 'none';
         document.getElementById('btn-prep-viz').style.display = 'block';
-        showToast("Sắp xếp file gốc thành công! Hãy tải về.");
-    } catch (e) { alert("Lỗi Sort!"); }
+        showToast("Full file sorted successfully! You can download now.");
+    } catch (e) { alert("Error during sorting process!"); }
 }
 
 async function requestVisualize() {
@@ -47,19 +47,17 @@ async function requestVisualize() {
     const btnPrep = document.getElementById('btn-prep-viz');
     loading.style.display = 'block';
     btnPrep.style.display = 'none';
-
     const formData = new FormData();
     formData.append("block_size", document.getElementById('blockSizeInput').value);
     formData.append("k_way", document.getElementById('kWayInput').value);
-
     try {
         const res = await fetch("/prepare_visualize", { method: "POST", body: formData });
         const data = await res.json();
         cachedSteps = data.steps;
         loading.style.display = 'none';
         document.getElementById('btn-visualize').style.display = 'block';
-        showToast("Đã nạp 500 phần tử đầu tiên để minh họa!");
-    } catch (e) { alert("Lỗi nạp!"); btnPrep.style.display = 'block'; }
+        showToast("Visualization data prepared for 500 elements!");
+    } catch (e) { alert("Error loading visualization!"); btnPrep.style.display = 'block'; }
 }
 
 function togglePlayPause() {
@@ -109,7 +107,7 @@ function startAnimation() {
 }
 
 function drawState(step) {
-    document.getElementById("io-display").innerText = `READS: ${step.io_reads}`;
+    document.getElementById("io-display").innerText = `DISK READS: ${step.io_reads}`;
     drawRuns(step.runs_full, step.pointers);
     drawBuffers(step.buffers);
     drawHeap(step.heap);
@@ -117,7 +115,7 @@ function drawState(step) {
     drawOutput(step.output);
 }
 
-// --- CÁC HÀM VẼ ---
+// --- RENDERING FUNCTIONS ---
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {
@@ -152,8 +150,7 @@ function drawHeap(heap) {
     const width = container.clientWidth || 500;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "100%"); svg.setAttribute("height", "180");
-    const levelH = 45;
-    const pos = [];
+    const levelH = 45; const pos = [];
     for (let i = 0; i < heap.length; i++) {
         const lv = Math.floor(Math.log2(i + 1));
         const idxInLv = i - (Math.pow(2, lv) - 1);
@@ -194,26 +191,17 @@ function drawPicked(v) {
 function drawOutput(out) {
     const container = document.getElementById("output");
     if (!container) return;
-
-    container.innerHTML = ""; // Xóa dữ liệu cũ
-
+    container.innerHTML = "";
     out.forEach((value, index) => {
         const div = document.createElement("div");
         div.className = "box output-box";
-
-        // Hiển thị số với 1 chữ số thập phân
         div.innerText = value.toFixed(1);
-
-        // Hiệu ứng xuất hiện cho số mới nhất được thêm vào
         if (index === out.length - 1) {
             div.style.animation = "fadeIn 0.5s ease";
             div.style.border = "2px solid #fff";
         }
-
         container.appendChild(div);
     });
-
-    // Tự động cuộn xuống cuối cùng để xem số mới nhất
     container.scrollTop = container.scrollHeight;
 }
 

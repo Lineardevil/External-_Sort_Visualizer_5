@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>External Sort Visualizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div id="start-screen">
+        <div class="hero-content">
+            <h1>EXTERNAL SORT<br><span>VISUALIZER</span></h1>
+            <button class="btn-start" onclick="showPage('upload-screen')">START SYSTEM</button>
+        </div>
+    </div>
+
+    <div id="upload-screen" style="display: none;">
+        <header class="game-header"><h1>STAGING <span>AREA</span></h1></header>
+        <div class="upload-container">
+            <div class="game-panel" style="width: 400px; margin-bottom: 20px;">
+                <h2><span class="icon">⚙️</span> CONFIGURATION</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label>BLOCK SIZE (RAM):</label>
+                    <input type="number" id="blockSizeInput" value="5" min="1" max="20" class="input-game">
+                </div>
+            </div>
+
+            <input type="file" id="fileInput" hidden onchange="handleFileSelect()">
+            <label for="fileInput" class="btn-game highlight">SELECT BINARY FILE</label>
+
+            <div id="file-info" class="game-panel" style="margin-top: 20px; display: none; width: 400px;">
+                <p>Số lượng phần tử (N): <span id="info-n" class="neon-text">0</span></p>
+                <p>Số lượng Runs: <span id="info-k" class="neon-text">0</span></p>
+                <p>Trạng thái: <span id="info-status" class="neon-text">Ready</span></p>
+                <p>Đường dẫn: <span id="info-output" class="neon-text"></span></p>
+            </div>
+
+            <button id="btn-visualize" onclick="goToVisualize()" class="btn-game" style="display: none;">WATCH VISUALIZATION</button>
+
+            <div id="loading-area" style="display: none;">
+                <div class="loader"></div>
+                <p class="neon-text">PROCESSING I/O...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="visualize-screen" style="display: none;">
+        <header class="game-header">
+            <button onclick="showPage('upload-screen')" class="btn-game">BACK</button>
+            <div class="timeline-box">
+                <span id="io-display" class="neon-text" style="margin-right: 20px;">DISK READS: 0</span>
+                <input type="range" id="stepSlider" min="0" value="0" oninput="seekStep(this.value)">
+                <span id="stepDisplay">0/0</span>
+                <button id="btn-pause" onclick="pauseAnimation()" class="btn-game">PAUSE</button>
+            </div>
+        </header>
+
+        <main class="dashboard">
+            <div class="left-col">
+                <section class="game-panel">
+                    <h2><span class="icon">💾</span> RUNS ON DISK</h2>
+                    <div id="runs" class="runs-container"></div>
+                </section>
+                <section class="game-panel">
+                    <h2><span class="icon">🧠</span> RAM BUFFERS (BLOCKS)</h2>
+                    <div id="buffers-area"></div>
+                </section>
+            </div>
+
+            <div class="right-col">
+                <section class="game-panel">
+                    <h2><span class="icon">🌳</span> MIN-HEAP TREE</h2>
+                    <div id="heap"></div>
+                </section>
+                <section class="game-panel">
+                    <h2><span class="icon">🎯</span> CURRENT PICKED</h2>
+                    <div id="picked-container" class="picked-full-row">
+                        <div id="picked"></div>
+                    </div>
+                </section>
+
+                <section class="game-panel">
+                    <h2><span class="icon">📊</span> FINAL OUTPUT</h2>
+                    <div id="output" class="output-grid">
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <div id="toast-container" class="toast-container"></div>
+</body>
+</html>

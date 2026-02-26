@@ -1,0 +1,13 @@
+# Python environment
+__pycache__/
+*.pyc
+
+# Data files (không đẩy file dữ liệu nặng lên GitHub)
+input.bin
+uploads/
+runs/
+output/
+
+# IDE files
+.vscode/
+.idea/

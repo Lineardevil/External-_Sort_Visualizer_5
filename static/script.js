@@ -18,13 +18,26 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateRamEstimate() {
     const b = parseInt(document.getElementById('blockSizeInput').value) || 0;
     const k = parseInt(document.getElementById('kWayInput').value) || 0;
-    const total = (k * b) + k; // Công thức: (k * block) + heap
+    const total = (k * b) + k;
 
     const el = document.getElementById('ram-estimate');
-    if (el) {
-        el.innerText = total;
-        // Cảnh báo màu đỏ nếu dùng quá nhiều RAM ảo (> 300 pt)
-        el.style.color = total > 300 ? "#ff4d4d" : "var(--neon-orange)";
+    const btnVisualize = document.getElementById('btn-visualize');
+    const btnFileLabel = document.querySelector('label[for="fileInput"]');
+
+    el.innerText = total;
+
+    // Ngưỡng cảnh báo: 300, Ngưỡng cấm: 1000
+    if (total > 1000) {
+        el.style.color = "#ff0000"; // Đỏ rực
+        el.innerHTML = total + " - QUÁ GIỚI HẠN RAM!";
+        // Cấm chọn file hoặc bắt đầu nếu thông số quá lố
+        btnFileLabel.style.opacity = "0.5";
+        btnFileLabel.style.pointerEvents = "none";
+        showToast("Lỗi: Tổng RAM (K*B + K) không được vượt quá 1000 để tránh sập server!");
+    } else {
+        el.style.color = total > 300 ? "#ff9f0a" : "#00d2ff";
+        btnFileLabel.style.opacity = "1";
+        btnFileLabel.style.pointerEvents = "auto";
     }
 }
 

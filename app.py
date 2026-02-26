@@ -9,52 +9,59 @@ app = Flask(__name__)
 for path in ["uploads", "runs", "output"]:
     os.makedirs(path, exist_ok=True)
 
-
 def read_binary_file(filename):
-    """Nạp TOÀN BỘ file vào RAM (Cách cũ bạn muốn)"""
+    """Nạp toàn bộ file vào RAM để xử lý nhanh nhất"""
     numbers = []
     if not os.path.exists(filename): return numbers
     with open(filename, "rb") as f:
-        # Đọc toàn bộ nội dung file
         data = f.read()
         if data:
             count = len(data) // 8
             numbers = list(struct.unpack(f"{count}d", data))
     return numbers
 
-
 def write_binary_file(filename, numbers):
-    """Ghi mảng số thực xuống file binary"""
     with open(filename, "wb") as f:
         for number in numbers:
             f.write(struct.pack("d", number))
 
-
 def create_runs_dynamic(input_file, k):
-    """Chia file dựa trên mảng đã nạp sẵn trong RAM"""
+    """Giai đoạn chia Run trong RAM"""
     for f in os.listdir("runs"):
         os.remove(os.path.join("runs", f))
-
-    # Nạp toàn bộ file vào RAM một lần duy nhất
     numbers = read_binary_file(input_file)
     n = len(numbers)
     if n == 0: return []
-
-    # Tính toán số lượng phần tử mỗi Run dựa trên K người dùng nhập
     run_size = max(1, n // k)
-
     run_files = []
     for i in range(0, n, run_size):
         chunk = numbers[i:i + run_size]
-        chunk.sort()  # Sắp xếp trong RAM
+        chunk.sort()
         run_name = f"runs/run_{len(run_files)}.bin"
         write_binary_file(run_name, chunk)
         run_files.append(run_name)
     return run_files
 
+def fast_merge_only(run_files, output_file):
+    """Trộn dữ liệu tốc độ cao, không lưu steps để tối ưu RAM"""
+    handles = [open(f, "rb") for f in run_files]
+    def get_val(f):
+        data = f.read(8)
+        return struct.unpack("d", data)[0] if data else None
+    heap = []
+    for i, h in enumerate(handles):
+        val = get_val(h)
+        if val is not None: heapq.heappush(heap, (val, i))
+    with open(output_file, "wb") as f_out:
+        while heap:
+            val, idx = heapq.heappop(heap)
+            f_out.write(struct.pack("d", val))
+            next_val = get_val(handles[idx])
+            if next_val is not None: heapq.heappush(heap, (next_val, idx))
+    for h in handles: h.close()
 
-def merge_runs_with_blocks(run_files, output_file, block_size=5):
-    """Hàm trộn có lưu các bước để Visualize"""
+def merge_runs_with_blocks(run_files, output_file, block_size):
+    """Trộn dữ liệu và lưu lại từng bước Step cho UI"""
     handles = [open(f, "rb") for f in run_files]
     buffers = [[] for _ in run_files]
     io_reads = 0
@@ -73,27 +80,12 @@ def merge_runs_with_blocks(run_files, output_file, block_size=5):
         buffers[idx].extend(numbers)
         return True
 
-    # Trạng thái ban đầu
-    steps.append({
-        "picked": None, "run_idx": -1, "heap": [], "io_reads": 0,
-        "buffers": [list(b) for b in buffers],
-        "pointers": current_pointers.copy(),
-        "runs_full": full_runs_content, "output": []
-    })
-
     heap = []
     for i in range(len(handles)):
         if refill_buffer(i):
             val = buffers[i].pop(0)
             heapq.heappush(heap, (val, i))
-            steps.append({
-                "picked": None, "run_idx": i,
-                "heap": [x[0] for x in heap],
-                "buffers": [list(b) for b in buffers],
-                "io_reads": io_reads,
-                "pointers": current_pointers.copy(),
-                "runs_full": full_runs_content, "output": []
-            })
+
     while heap:
         val, idx = heapq.heappop(heap)
         viz_output.append(val)
@@ -108,77 +100,38 @@ def merge_runs_with_blocks(run_files, output_file, block_size=5):
             "pointers": current_pointers.copy(), "runs_full": full_runs_content,
             "output": viz_output.copy()
         })
-
     for h in handles: h.close()
-    write_binary_file(output_file, viz_output)
     return steps
-
-
-def fast_merge_only(run_files, output_file):
-    """Hàm trộn thuần túy cho file lớn"""
-    handles = [open(f, "rb") for f in run_files]
-
-    def get_val(f):
-        data = f.read(8)
-        return struct.unpack("d", data)[0] if data else None
-
-    heap = []
-    for i, h in enumerate(handles):
-        val = get_val(h)
-        if val is not None: heapq.heappush(heap, (val, i))
-    with open(output_file, "wb") as f_out:
-        while heap:
-            val, idx = heapq.heappop(heap)
-            f_out.write(struct.pack("d", val))
-            next_val = get_val(handles[idx])
-            if next_val is not None: heapq.heappush(heap, (next_val, idx))
-    for h in handles: h.close()
-
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-
 @app.route("/upload", methods=["POST"])
 def upload():
+    """GIAI ĐOẠN 1: SORT NHANH"""
     file = request.files.get("file")
-    block_size = max(1, min(int(request.form.get("block_size", 5)), 100))
     k_way = max(2, min(int(request.form.get("k_way", 4)), 20))
-
     if not file: return jsonify({"error": "No file"}), 400
-
     input_path = "uploads/input.bin"
     file.save(input_path)
-    n_elements = os.path.getsize(input_path) // 8
-
-    is_too_large = n_elements > 10001
-    output_file = "output/sorted.bin"
-
-    # Sử dụng k_way từ người dùng để chia luồng Run
     runs = create_runs_dynamic(input_path, k_way)
+    fast_merge_only(runs, "output/sorted.bin")
+    return jsonify({"status": "SẮP XẾP THÀNH CÔNG!"})
 
-    if is_too_large:
-        fast_merge_only(runs, output_file)
-        steps = []
-        status_msg = f"File lớn ({n_elements} pt): Ưu tiên xuất file nhanh, hủy Visualize."
-    else:
-        steps = merge_runs_with_blocks(runs, output_file, block_size)
-        status_msg = "Xử lý hoàn tất!"
-
-    return jsonify({
-        "steps": steps,
-        "is_too_large": is_too_large,
-        "status": status_msg,
-        "output_status": f"Sẵn sàng tại: {output_file}"
-    })
-
+@app.route("/prepare_visualize", methods=["POST"])
+def prepare_visualize():
+    """GIAI ĐOẠN 2: TẠO DỮ LIỆU MÔ PHỎNG"""
+    block_size = int(request.form.get("block_size", 5))
+    k_way = int(request.form.get("k_way", 4))
+    runs = create_runs_dynamic("uploads/input.bin", k_way)
+    steps = merge_runs_with_blocks(runs, "output/sorted.bin", block_size)
+    return jsonify({"steps": steps})
 
 @app.route('/download')
 def download_file():
-    """Route phục vụ việc tải file sorted.bin"""
+    """Cho phép tải file kết quả về máy"""
     return send_from_directory("output", "sorted.bin", as_attachment=True)
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

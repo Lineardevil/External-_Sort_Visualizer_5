@@ -192,10 +192,29 @@ function drawPicked(v) {
 }
 
 function drawOutput(out) {
-    const c = document.getElementById("output"); c.innerHTML = "";
-    out.slice(-24).forEach(v => {
-        const b = document.createElement("div"); b.className = "box output-box"; b.innerText = v.toFixed(1); c.appendChild(b);
+    const container = document.getElementById("output");
+    if (!container) return;
+
+    container.innerHTML = ""; // Xóa dữ liệu cũ
+
+    out.forEach((value, index) => {
+        const div = document.createElement("div");
+        div.className = "box output-box";
+
+        // Hiển thị số với 1 chữ số thập phân
+        div.innerText = value.toFixed(1);
+
+        // Hiệu ứng xuất hiện cho số mới nhất được thêm vào
+        if (index === out.length - 1) {
+            div.style.animation = "fadeIn 0.5s ease";
+            div.style.border = "2px solid #fff";
+        }
+
+        container.appendChild(div);
     });
+
+    // Tự động cuộn xuống cuối cùng để xem số mới nhất
+    container.scrollTop = container.scrollHeight;
 }
 
 function showToast(m) {

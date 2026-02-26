@@ -246,6 +246,38 @@ body {
     height: 45px;
     border-color: var(--neon-blue) !important;
 }
+
+/* Định dạng lại bảng Output theo dạng lưới chuyên nghiệp */
+.output-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); /* Tự động chia cột đều nhau */
+    gap: 10px;
+    max-height: 400px; /* Giới hạn chiều cao để không đẩy giao diện quá dài */
+    overflow-y: auto;  /* Hiện thanh cuộn khi dữ liệu nhiều */
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+/* Tùy chỉnh thanh cuộn cho đẹp */
+.output-grid::-webkit-scrollbar {
+    width: 6px;
+}
+.output-grid::-webkit-scrollbar-thumb {
+    background: var(--neon-blue);
+    border-radius: 10px;
+}
+
+/* Box số trong Output */
+.output-box {
+    background: #238636 !important; /* Màu xanh lá biểu thị dữ liệu đã xong */
+    border-color: #2ea043 !important;
+    color: white;
+    box-shadow: 0 0 5px rgba(46, 160, 67, 0.4);
+    transition: all 0.3s ease;
+}
+
 @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 

@@ -1,6 +1,7 @@
 let animationInterval = null;
+let isPaused = false;
+let animationSpeed = 800; // Mặc định 800ms
 let cachedSteps = [];
-let selectedFile = null;
 let currentIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -62,8 +63,40 @@ async function requestVisualize() {
 function showPage(id) {
     document.querySelectorAll('#start-screen, #upload-screen, #visualize-screen').forEach(p => p.style.display = 'none');
     document.getElementById(id).style.display = 'block';
-    if(id !== 'visualize-screen') clearInterval(animationInterval);
+    if(id !== 'visualize-screen') {
+        clearInterval(animationInterval);
+        isPaused = false;
+    }
 }
+
+function togglePlayPause() {
+    const btn = document.getElementById('btn-play-pause');
+    if (isPaused) {
+        isPaused = false;
+        btn.innerText = "PAUSE";
+        btn.style.borderColor = "#00ff88";
+        btn.style.color = "#00ff88";
+        startAnimation(); // Tiếp tục chạy
+    } else {
+        isPaused = true;
+        btn.innerText = "CONTINUE";
+        btn.style.borderColor = "#ff9f0a";
+        btn.style.color = "#ff9f0a";
+        clearInterval(animationInterval); // Dừng lại
+    }
+}
+
+function updateSpeed(val) {
+    animationSpeed = parseInt(val);
+    document.getElementById('speedDisplay').innerText = val + "ms";
+    // Nếu đang chạy thì khởi động lại interval với tốc độ mới
+    if (!isPaused && animationInterval) {
+        clearInterval(animationInterval);
+        startAnimation();
+    }
+}
+
+
 
 function goToVisualize() {
     currentIndex = 0;
@@ -74,14 +107,20 @@ function goToVisualize() {
 function startAnimation() {
     const slider = document.getElementById("stepSlider");
     slider.max = cachedSteps.length - 1;
+
     if (animationInterval) clearInterval(animationInterval);
+
     animationInterval = setInterval(() => {
-        if (currentIndex >= cachedSteps.length) return clearInterval(animationInterval);
+        if (currentIndex >= cachedSteps.length) {
+            clearInterval(animationInterval);
+            return;
+        }
+
         drawState(cachedSteps[currentIndex]);
         slider.value = currentIndex;
         document.getElementById("stepDisplay").innerText = `${currentIndex + 1}/${cachedSteps.length}`;
         currentIndex++;
-    }, 800);
+    }, animationSpeed); // Sử dụng biến animationSpeed thay vì 800 cố định
 }
 
 function drawState(step) {
@@ -200,4 +239,10 @@ function showToast(m) {
     setTimeout(() => t.remove(), 3000);
 }
 
-function seekStep(v) { currentIndex = parseInt(v); drawState(cachedSteps[currentIndex]); }
+function seekStep(v) {
+    // Khi người dùng kéo thanh trượt, tạm dừng để tránh xung đột
+    if (!isPaused) togglePlayPause();
+    currentIndex = parseInt(v);
+    drawState(cachedSteps[currentIndex]);
+    document.getElementById("stepDisplay").innerText = `${currentIndex + 1}/${cachedSteps.length}`;
+}

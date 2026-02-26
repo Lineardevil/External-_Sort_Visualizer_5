@@ -70,6 +70,13 @@
                 <span id="io-display" class="neon-text">DISK READS: 0</span>
                 <input type="range" id="stepSlider" min="0" value="0" oninput="seekStep(this.value)">
                 <span id="stepDisplay">0/0</span>
+
+            <div style="display: inline-flex; gap: 10px; margin-left: 20px; align-items: center;">
+                <button id="btn-play-pause" onclick="togglePlayPause()" class="btn-game" style="border-color: #00ff88; color: #00ff88;">PAUSE</button>
+                <label style="font-size: 0.7rem; color: #888;">SPEED:</label>
+                <input type="range" id="speedSlider" min="50" max="2000" value="800" step="50" oninput="updateSpeed(this.value)" style="width: 100px; accent-color: #ff9f0a;">
+                <span id="speedDisplay" style="font-size: 0.8rem; min-width: 50px;">800ms</span>
+            </div>
             </div>
         </header>
         <main class="dashboard">

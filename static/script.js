@@ -12,8 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateRamEstimate() {
     const b = parseInt(document.getElementById('blockSizeInput').value) || 0;
     const k = parseInt(document.getElementById('kWayInput').value) || 0;
-    const total = (k * b) + k;
-    document.getElementById('ram-estimate').innerText = total;
+    document.getElementById('ram-estimate').innerText = (k * b) + k;
 }
 
 function handleFileSelect() {
@@ -28,7 +27,6 @@ async function triggerSort() {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("k_way", document.getElementById('kWayInput').value);
-
     document.getElementById('loading-area').style.display = 'block';
     try {
         const res = await fetch("/upload", { method: "POST", body: formData });
@@ -38,7 +36,7 @@ async function triggerSort() {
         document.getElementById('info-status').innerText = data.status;
         document.getElementById('btn-visualize').style.display = 'none';
         document.getElementById('btn-prep-viz').style.display = 'block';
-    } catch (e) { alert("Lỗi khi sắp xếp!"); }
+    } catch (e) { alert("Lỗi khi Sort!"); }
 }
 
 async function requestVisualize() {
@@ -95,7 +93,8 @@ function drawState(step) {
     drawOutput(step.output);
 }
 
-// CÁC HÀM VẼ GIAO DIỆN CHI TIẾT
+// --- CÁC HÀM VẼ CHI TIẾT ---
+
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {
@@ -103,7 +102,7 @@ function drawRuns(runs, pointers) {
         row.innerHTML = `<div class="run-label">RUN #${rIdx}</div>`;
         run.forEach((v, i) => {
             const b = document.createElement("div"); b.className = "box"; b.innerText = v.toFixed(1);
-            if (i === pointers[rIdx]) b.style.boxShadow = "0 0 10px var(--neon-orange)";
+            if (i === pointers[rIdx]) b.style.boxShadow = "0 0 10px #ff9f0a";
             if (i < pointers[rIdx]) b.style.opacity = "0.2";
             row.appendChild(b);
         });
@@ -124,22 +123,62 @@ function drawBuffers(buffers) {
     });
 }
 
+/** HÀM VẼ CÂY MIN-HEAP CHUẨN **/
 function drawHeap(heap) {
-    const container = document.getElementById("heap"); container.innerHTML = "";
+    const container = document.getElementById("heap");
+    container.innerHTML = "";
     if (heap.length === 0) return;
+
+    const width = container.clientWidth || 500;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", "100%"); svg.setAttribute("height", "150");
-    heap.forEach((v, i) => {
-        const x = 50 + i * 70;
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "200");
+
+    const levelHeight = 50;
+    const nodeRadius = 18;
+    const positions = [];
+
+    // Tính toán tọa độ cho từng node
+    for (let i = 0; i < heap.length; i++) {
+        const level = Math.floor(Math.log2(i + 1));
+        const indexInLevel = i - (Math.pow(2, level) - 1);
+        const nodesInLevel = Math.pow(2, level);
+        const x = (width / (nodesInLevel + 1)) * (indexInLevel + 1);
+        const y = 30 + level * levelHeight;
+        positions.push({ x, y });
+    }
+
+    // Vẽ đường kẻ nối (vẽ trước để nằm dưới node)
+    for (let i = 0; i < heap.length; i++) {
+        const left = 2 * i + 1;
+        const right = 2 * i + 2;
+        [left, right].forEach(childIdx => {
+            if (childIdx < heap.length) {
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", positions[i].x); line.setAttribute("y1", positions[i].y);
+                line.setAttribute("x2", positions[childIdx].x); line.setAttribute("y2", positions[childIdx].y);
+                line.setAttribute("stroke", "#444"); line.setAttribute("stroke-width", "2");
+                svg.appendChild(line);
+            }
+        });
+    }
+
+    // Vẽ các nút tròn và số
+    for (let i = 0; i < heap.length; i++) {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("cx", x); circle.setAttribute("cy", "50"); circle.setAttribute("r", "22");
-        circle.setAttribute("stroke", "var(--neon-blue)"); circle.setAttribute("fill", "none");
+        circle.setAttribute("cx", positions[i].x); circle.setAttribute("cy", positions[i].y);
+        circle.setAttribute("r", nodeRadius); circle.setAttribute("fill", "#161b22");
+        circle.setAttribute("stroke", "#00d2ff"); circle.setAttribute("stroke-width", "2");
+
         const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        txt.setAttribute("x", x); txt.setAttribute("y", "55"); txt.setAttribute("text-anchor", "middle");
-        txt.setAttribute("fill", "white"); txt.textContent = v.toFixed(1);
-        g.appendChild(circle); g.appendChild(txt); svg.appendChild(g);
-    });
+        txt.setAttribute("x", positions[i].x); txt.setAttribute("y", positions[i].y + 5);
+        txt.setAttribute("text-anchor", "middle"); txt.setAttribute("fill", "white");
+        txt.setAttribute("font-size", "11px"); txt.textContent = heap[i].toFixed(1);
+
+        g.appendChild(circle); g.appendChild(txt);
+        svg.appendChild(g);
+    }
     container.appendChild(svg);
 }
 
@@ -150,7 +189,7 @@ function drawPicked(v) {
 
 function drawOutput(out) {
     const c = document.getElementById("output"); c.innerHTML = "";
-    out.slice(-30).forEach(v => {
+    out.slice(-20).forEach(v => {
         const b = document.createElement("div"); b.className = "box output-box"; b.innerText = v.toFixed(1); c.appendChild(b);
     });
 }
@@ -161,5 +200,4 @@ function showToast(m) {
     setTimeout(() => t.remove(), 3000);
 }
 
-function seekStep(v) { pauseAnimation(); currentIndex = parseInt(v); drawState(cachedSteps[currentIndex]); }
-function pauseAnimation() { clearInterval(animationInterval); }
+function seekStep(v) { currentIndex = parseInt(v); drawState(cachedSteps[currentIndex]); }

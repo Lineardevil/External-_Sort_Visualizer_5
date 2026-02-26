@@ -9,53 +9,53 @@
     <div id="start-screen">
         <div class="hero-content">
             <h1>EXTERNAL SORT<br><span>VISUALIZER</span></h1>
-            <button class="btn-start" onclick="showPage('upload-screen')">START SYSTEM</button>
+            <button class="btn-start" onclick="showPage('upload-screen')">BẮT ĐẦU</button>
         </div>
     </div>
 
     <div id="upload-screen" style="display: none;">
         <header class="game-header"><h1>STAGING <span>AREA</span></h1></header>
         <div class="upload-container">
-            <div class="game-panel" style="width: 420px; margin-bottom: 20px;">
-                <h2><span class="icon">⚙️</span> CẤU HÌNH HỆ THỐNG</h2>
-                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div class="game-panel" style="width: 400px; margin-bottom: 20px;">
+                <h2><span class="icon">⚙️</span> CONFIGURATION</h2>
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
                     <label>BLOCK SIZE (B):</label>
                     <input type="number" id="blockSizeInput" value="5" min="1" max="100" class="input-game">
                 </div>
-                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
                     <label>K-WAY MERGE (K):</label>
                     <input type="number" id="kWayInput" value="4" min="2" max="20" class="input-game">
                 </div>
-                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;">
-                    <p style="font-size: 0.85rem;">RAM sử dụng: <span id="ram-estimate" class="neon-text">24</span> số</p>
+                <div style="border-top: 1px solid #333; padding-top: 10px;">
+                    <p style="font-size: 0.8rem;">Dự kiến RAM dùng: <span id="ram-estimate" class="neon-text">24</span> số</p>
                 </div>
             </div>
 
             <input type="file" id="fileInput" hidden onchange="handleFileSelect()">
             <label for="fileInput" id="fileInputLabel" class="btn-game highlight">1. CHỌN FILE DỮ LIỆU (.BIN)</label>
 
-            <div id="file-ready-area" class="game-panel" style="margin-top: 20px; display: none; width: 420px;">
+            <div id="file-ready-area" class="game-panel" style="margin-top: 20px; display: none; width: 400px;">
                 <p>File: <span id="info-filename" class="neon-text"></span></p>
-                <button id="btn-start-sort" onclick="triggerSort()" class="btn-game" style="width: 100%; background: var(--neon-orange); color: #000;">
-                    2. BẮT ĐẦU SẮP XẾP (SORT)
+                <button id="btn-start-sort" onclick="triggerSort()" class="btn-game" style="width: 100%; background: #ff9f0a; color: #000;">
+                    2. START SORTING
                 </button>
             </div>
 
-            <div id="result-area" class="game-panel" style="margin-top: 20px; display: none; width: 420px;">
-                <p>Trạng thái: <span id="info-status" class="neon-text">XONG</span></p>
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+            <div id="result-area" class="game-panel" style="margin-top: 20px; display: none; width: 400px;">
+                <p>Trạng thái: <span id="info-status" class="neon-text">COMPLETED</span></p>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
                     <a href="/download" id="btn-download" class="btn-game" style="text-decoration: none; background: #00ff88; color: #000; text-align: center;">
                         📥 TẢI FILE KẾT QUẢ (.BIN)
                     </a>
-                    <button id="btn-prep-viz" onclick="requestVisualize()" class="btn-game" style="background: var(--neon-blue); color: #000;">
+                    <button id="btn-prep-viz" onclick="requestVisualize()" class="btn-game" style="background: #00d2ff; color: #000;">
                         👁️ CHUẨN BỊ MÔ PHỎNG (VISUALIZE)
                     </button>
                     <button id="btn-visualize" onclick="goToVisualize()" class="btn-game" style="display: none; border-color: gold; color: gold;">
-                        🚀 XEM ANIMATION MÔ PHỎNG
+                        🚀 XEM ANIMATION
                     </button>
                 </div>
                 <div id="viz-loading" style="display: none; text-align: center; margin-top: 10px;">
-                    <div class="loader-small"></div> <small>Đang nạp dữ liệu bước...</small>
+                    <div class="loader-small"></div> <small>Đang tạo các bước...</small>
                 </div>
             </div>
 
@@ -65,7 +65,7 @@
 
     <div id="visualize-screen" style="display: none;">
         <header class="game-header">
-            <button onclick="showPage('upload-screen')" class="btn-game">QUAY LẠI</button>
+            <button onclick="showPage('upload-screen')" class="btn-game">BACK</button>
             <div class="timeline-box">
                 <span id="io-display" class="neon-text">DISK READS: 0</span>
                 <input type="range" id="stepSlider" min="0" value="0" oninput="seekStep(this.value)">

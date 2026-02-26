@@ -5,12 +5,12 @@ import heapq
 
 app = Flask(__name__)
 
-# Đảm bảo các thư mục hệ thống luôn sẵn sàng
+# Khởi tạo thư mục
 for path in ["uploads", "runs", "output"]:
     os.makedirs(path, exist_ok=True)
 
 def read_binary_file(filename):
-    """Nạp toàn bộ file vào RAM để xử lý nhanh nhất"""
+    """Nạp toàn bộ file vào RAM"""
     numbers = []
     if not os.path.exists(filename): return numbers
     with open(filename, "rb") as f:
@@ -26,7 +26,7 @@ def write_binary_file(filename, numbers):
             f.write(struct.pack("d", number))
 
 def create_runs_dynamic(input_file, k):
-    """Giai đoạn chia Run trong RAM"""
+    """Chia file thành các Run đã sort"""
     for f in os.listdir("runs"):
         os.remove(os.path.join("runs", f))
     numbers = read_binary_file(input_file)
@@ -43,7 +43,7 @@ def create_runs_dynamic(input_file, k):
     return run_files
 
 def fast_merge_only(run_files, output_file):
-    """Trộn dữ liệu tốc độ cao, không lưu steps để tối ưu RAM"""
+    """Trộn nhanh không lưu steps"""
     handles = [open(f, "rb") for f in run_files]
     def get_val(f):
         data = f.read(8)
@@ -61,7 +61,7 @@ def fast_merge_only(run_files, output_file):
     for h in handles: h.close()
 
 def merge_runs_with_blocks(run_files, output_file, block_size):
-    """Trộn dữ liệu và lưu lại từng bước Step cho UI"""
+    """Trộn và lưu các bước cho Visualize"""
     handles = [open(f, "rb") for f in run_files]
     buffers = [[] for _ in run_files]
     io_reads = 0
@@ -109,7 +109,7 @@ def index():
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    """GIAI ĐOẠN 1: SORT NHANH"""
+    """BƯỚC 1: CHỈ SORT VÀ XUẤT FILE"""
     file = request.files.get("file")
     k_way = max(2, min(int(request.form.get("k_way", 4)), 20))
     if not file: return jsonify({"error": "No file"}), 400
@@ -117,11 +117,11 @@ def upload():
     file.save(input_path)
     runs = create_runs_dynamic(input_path, k_way)
     fast_merge_only(runs, "output/sorted.bin")
-    return jsonify({"status": "SẮP XẾP THÀNH CÔNG!"})
+    return jsonify({"status": "HỆ THỐNG ĐÃ SẮP XẾP XONG!"})
 
 @app.route("/prepare_visualize", methods=["POST"])
 def prepare_visualize():
-    """GIAI ĐOẠN 2: TẠO DỮ LIỆU MÔ PHỎNG"""
+    """BƯỚC 2: TÍNH TOÁN CÁC BƯỚC MÔ PHỎNG"""
     block_size = int(request.form.get("block_size", 5))
     k_way = int(request.form.get("k_way", 4))
     runs = create_runs_dynamic("uploads/input.bin", k_way)
@@ -130,7 +130,6 @@ def prepare_visualize():
 
 @app.route('/download')
 def download_file():
-    """Cho phép tải file kết quả về máy"""
     return send_from_directory("output", "sorted.bin", as_attachment=True)
 
 if __name__ == "__main__":

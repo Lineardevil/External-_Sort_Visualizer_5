@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import os
 import struct
 import heapq
@@ -11,7 +11,7 @@ for path in ["uploads", "runs", "output"]:
 
 
 def read_binary_file(filename):
-    """Đọc toàn bộ file binary để phục vụ việc vẽ toàn bộ Run trên UI"""
+    """Đọc toàn bộ file binary phục vụ vẽ UI"""
     numbers = []
     if not os.path.exists(filename): return numbers
     with open(filename, "rb") as f:
@@ -36,33 +36,29 @@ def create_runs_dynamic(input_file, num_runs_target):
 
     file_size = os.path.getsize(input_file)
     n_elements = file_size // 8
-    # Tính toán kích thước mỗi Run để đạt được số lượng K-Way mong muốn
+    # Kích thước mỗi Run để đạt được số lượng K-Way mong muốn
     run_size = max(1, n_elements // num_runs_target)
 
     run_files = []
     with open(input_file, "rb") as f_in:
         for i in range(num_runs_target):
-            # Chỉ đọc đúng số lượng phần tử cần thiết cho 1 Run
             data = f_in.read(run_size * 8)
             if not data: break
 
             count = len(data) // 8
-            # Giải mã dữ liệu và sắp xếp ngay trong RAM tạm thời
             chunk = list(struct.unpack(f"{count}d", data))
-            chunk.sort()
+            chunk.sort()  # Sắp xếp trong RAM
 
             run_name = f"runs/run_{len(run_files)}.bin"
             write_binary_file(run_name, chunk)
             run_files.append(run_name)
-
-            # Giải phóng bộ nhớ chunk sau khi ghi xong
             del chunk
 
     return run_files
 
 
 def merge_runs_with_blocks(run_files, output_file, block_size=5):
-    """Hàm trộn có lưu các bước (steps) để Visualize"""
+    """Hàm trộn lưu các bước để Visualize"""
     handles = [open(f, "rb") for f in run_files]
     buffers = [[] for _ in run_files]
     io_reads = 0
@@ -81,7 +77,6 @@ def merge_runs_with_blocks(run_files, output_file, block_size=5):
         buffers[idx].extend(numbers)
         return True
 
-    # Khởi tạo trạng thái ban đầu
     steps.append({
         "picked": None, "run_idx": -1, "heap": [], "io_reads": 0,
         "buffers": [list(b) for b in buffers],
@@ -102,19 +97,15 @@ def merge_runs_with_blocks(run_files, output_file, block_size=5):
                 "pointers": current_pointers.copy(),
                 "runs_full": full_runs_content, "output": []
             })
-
     while heap:
         val, idx = heapq.heappop(heap)
         viz_output.append(val)
         current_pointers[idx] += 1
-
         if not buffers[idx]:
             refill_buffer(idx)
-
         if buffers[idx]:
             next_val = buffers[idx].pop(0)
             heapq.heappush(heap, (next_val, idx))
-
         steps.append({
             "picked": val, "run_idx": idx, "heap": [x[0] for x in heap],
             "buffers": [list(b) for b in buffers], "io_reads": io_reads,
@@ -128,7 +119,7 @@ def merge_runs_with_blocks(run_files, output_file, block_size=5):
 
 
 def fast_merge_only(run_files, output_file):
-    """Hàm trộn thuần túy cho file lớn, không lưu steps để tiết kiệm RAM"""
+    """Hàm trộn thuần túy cho file lớn, không lưu steps"""
     handles = [open(f, "rb") for f in run_files]
 
     def get_val(f):
@@ -147,7 +138,6 @@ def fast_merge_only(run_files, output_file):
             next_val = get_val(handles[idx])
             if next_val is not None:
                 heapq.heappush(heap, (next_val, idx))
-
     for h in handles: h.close()
 
 
@@ -159,7 +149,7 @@ def index():
 @app.route("/upload", methods=["POST"])
 def upload():
     file = request.files.get("file")
-    # Lấy thông số từ người dùng và giới hạn an toàn
+    # Giới hạn an toàn phía Backend
     block_size = max(1, min(int(request.form.get("block_size", 5)), 100))
     k_way = max(2, min(int(request.form.get("k_way", 4)), 20))
 
@@ -169,12 +159,10 @@ def upload():
     file.save(input_path)
     n_elements = os.path.getsize(input_path) // 8
 
-    # Ngưỡng tối đa để chạy Visualization mượt mà
     is_too_large = n_elements > 10001
     output_file = "output/sorted.bin"
 
-    # Sử dụng k_way người dùng nhập để chia run
-    runs = create_runs_dynamic(input_path, k_way)
+    runs = create_runs_dynamic(input_path, k_way)  # Dùng k_way từ người dùng
 
     if is_too_large:
         fast_merge_only(runs, output_file)
@@ -192,7 +180,12 @@ def upload():
     })
 
 
+@app.route('/download')
+def download_file():
+    """Gửi file sorted.bin từ thư mục output về máy người dùng"""
+    return send_from_directory("output", "sorted.bin", as_attachment=True)
+
+
 if __name__ == "__main__":
-    # Railway sẽ cấp PORT thông qua biến môi trường
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)

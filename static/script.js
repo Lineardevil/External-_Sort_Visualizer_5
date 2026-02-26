@@ -4,111 +4,104 @@ let currentIndex = 0;
 let cachedSteps = [];
 
 /**
- * 1. KHỞI TẠO & LẮNG NGHE SỰ KIỆN
+ * 1. KHỞI TẠO & THEO DÕI CẤU HÌNH
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Tự động cập nhật dự báo RAM khi người dùng thay đổi thông số
-    const inputs = ['blockSizeInput', 'kWayInput'];
-    inputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', updateRamEstimate);
-    });
+    // Cập nhật RAM ngay khi load trang
     updateRamEstimate();
+
+    // Theo dõi thay đổi ở các ô nhập liệu
+    document.getElementById('blockSizeInput').addEventListener('input', updateRamEstimate);
+    document.getElementById('kWayInput').addEventListener('input', updateRamEstimate);
 });
 
 function updateRamEstimate() {
     const b = parseInt(document.getElementById('blockSizeInput').value) || 0;
     const k = parseInt(document.getElementById('kWayInput').value) || 0;
-    const total = (k * b) + k;
+    const total = (k * b) + k; // Công thức: (K*B) + K
 
-    const el = document.getElementById('ram-estimate');
-    const btnVisualize = document.getElementById('btn-visualize');
-    const btnFileLabel = document.querySelector('label[for="fileInput"]');
+    const ramText = document.getElementById('ram-estimate');
+    const warning = document.getElementById('ram-warning');
+    const fileLabel = document.getElementById('fileInputLabel');
 
-    el.innerText = total;
+    if (ramText) ramText.innerText = total;
 
-    // Ngưỡng cảnh báo: 300, Ngưỡng cấm: 1000
+    // CẢNH BÁO & CẤM: Nếu RAM dự kiến > 1000
     if (total > 1000) {
-        el.style.color = "#ff0000"; // Đỏ rực
-        el.innerHTML = total + " - QUÁ GIỚI HẠN RAM!";
-        // Cấm chọn file hoặc bắt đầu nếu thông số quá lố
-        btnFileLabel.style.opacity = "0.5";
-        btnFileLabel.style.pointerEvents = "none";
-        showToast("Lỗi: Tổng RAM (K*B + K) không được vượt quá 1000 để tránh sập server!");
+        if (warning) warning.style.display = 'block';
+        if (ramText) ramText.style.color = '#ff4d4d';
+        fileLabel.style.opacity = "0.5";
+        fileLabel.style.pointerEvents = "none"; // Khóa không cho chọn file
     } else {
-        el.style.color = total > 300 ? "#ff9f0a" : "#00d2ff";
-        btnFileLabel.style.opacity = "1";
-        btnFileLabel.style.pointerEvents = "auto";
+        if (warning) warning.style.display = 'none';
+        if (ramText) ramText.style.color = 'var(--neon-blue)';
+        fileLabel.style.opacity = "1";
+        fileLabel.style.pointerEvents = "auto"; // Mở khóa
     }
 }
 
 /**
- * 2. XỬ LÝ FILE & UPLOAD (Bản nâng cấp)
+ * 2. XỬ LÝ FILE & UPLOAD
  */
 function handleFileSelect() {
-    const file = document.getElementById('fileInput').files[0];
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
     if (!file) return;
 
     const n = Math.floor(file.size / 8);
     document.getElementById('file-info').style.display = 'block';
     document.getElementById('info-n').innerText = n;
 
-    // Reset trạng thái UI trước khi bắt đầu
+    // Ẩn các nút cũ để tránh nhầm lẫn
     document.getElementById('btn-visualize').style.display = 'none';
-    document.getElementById('info-status').innerText = "READY TO PROCESS";
+    document.getElementById('btn-download').style.display = 'none';
+    document.getElementById('info-status').innerText = "ĐANG TẢI LÊN...";
 
-    // Tự động chạy Sort
     autoUploadAndSort(file);
 }
 
 async function autoUploadAndSort(file) {
-    const statusEl = document.getElementById('info-status');
-    const loadingArea = document.getElementById('loading-area');
-
     const formData = new FormData();
     formData.append("file", file);
     formData.append("block_size", document.getElementById('blockSizeInput').value);
-    formData.append("k_way", document.getElementById('kWayInput').value);
+    formData.append("k_way", document.getElementById('kWayInput').value); // Gửi k_way lên server
 
-    // Bắt đầu quá trình
-    loadingArea.style.display = 'block';
-    statusEl.innerText = "UPLOADING FILE...";
-    statusEl.classList.add("neon-text");
+    document.getElementById('loading-area').style.display = 'block';
 
     try {
-        const response = await fetch("/upload", {
-            method: "POST",
-            body: formData
-        });
-
-        if (!response.ok) throw new Error("Server error: " + response.statusText);
-
+        const response = await fetch("/upload", { method: "POST", body: formData });
         const data = await response.json();
-        statusEl.innerText = "SORTING & GENERATING STEPS...";
+
+        document.getElementById('loading-area').style.display = 'none';
+
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        // Cập nhật trạng thái sau khi Sort xong
+        document.getElementById('info-status').innerText = data.status;
+        document.getElementById('info-output').innerText = data.output_status;
+
+        // HIỆN NÚT DOWNLOAD & VISUALIZE
+        document.getElementById('btn-download').style.display = 'inline-block';
 
         if (data.steps && data.steps.length > 0) {
             cachedSteps = data.steps;
-            currentIndex = 0;
-
-            // Hoàn tất
-            loadingArea.style.display = 'none';
-            statusEl.innerText = "COMPLETED SUCCESSFULLY";
-            document.getElementById('info-output').innerText = data.output_status;
             document.getElementById('btn-visualize').style.display = 'inline-block';
-            showToast("Sắp xếp hoàn tất! Sẵn sàng mô phỏng.");
-        } else if (data.is_too_large) {
-            loadingArea.style.display = 'none';
-            statusEl.innerText = "FILE TOO LARGE - DOWNLOAD ONLY";
-            showToast("File quá lớn, hệ thống đã tối ưu bằng cách bỏ qua Visualize.");
+            showToast("Sắp xếp thành công! Bạn có thể xem mô phỏng hoặc tải file.");
+        } else {
+            showToast("File lớn: Đã tối ưu tốc độ, hãy nhấn Download để lấy kết quả.");
         }
+
     } catch (err) {
-        loadingArea.style.display = 'none';
-        statusEl.innerText = "ERROR OCCURRED";
-        alert("Lỗi: " + err.message);
+        document.getElementById('loading-area').style.display = 'none';
+        alert("Lỗi kết nối server!");
     }
 }
 
 /**
- * 3. HỆ THỐNG ANIMATION & VẼ (Giữ nguyên logic cũ nhưng tối ưu hiển thị)
+ * 3. HỆ THỐNG MÔ PHỎNG (Giữ nguyên các hàm vẽ của bạn)
  */
 function showPage(pageId) {
     document.getElementById('start-screen').style.display = 'none';
@@ -129,32 +122,32 @@ function goToVisualize() {
 
 function startAnimation() {
     const slider = document.getElementById("stepSlider");
-    if (slider) slider.max = currentSteps.length - 1;
+    slider.max = currentSteps.length - 1;
     if (animationInterval) clearInterval(animationInterval);
 
     animationInterval = setInterval(() => {
         if (currentIndex >= currentSteps.length) {
             clearInterval(animationInterval);
-            showToast("Hoàn tất mô phỏng thuật toán!");
             return;
         }
         drawState(currentSteps[currentIndex]);
-        updateSliderDisplay();
+        document.getElementById("stepSlider").value = currentIndex;
+        document.getElementById("stepDisplay").innerText = `${currentIndex + 1}/${currentSteps.length}`;
         currentIndex++;
     }, 800);
 }
 
-function updateSliderDisplay() {
-    const slider = document.getElementById("stepSlider");
-    const display = document.getElementById("stepDisplay");
-    if (slider) slider.value = currentIndex;
-    if (display) display.innerText = `${currentIndex + 1} / ${currentSteps.length}`;
+function pauseAnimation() { clearInterval(animationInterval); }
+
+function seekStep(idx) {
+    pauseAnimation();
+    currentIndex = parseInt(idx);
+    drawState(currentSteps[currentIndex]);
+    document.getElementById("stepDisplay").innerText = `${currentIndex + 1}/${currentSteps.length}`;
 }
 
 function drawState(step) {
-    const ioDisplay = document.getElementById("io-display");
-    if (ioDisplay) ioDisplay.innerText = `DISK READS: ${step.io_reads}`;
-
+    document.getElementById("io-display").innerText = `DISK READS: ${step.io_reads}`;
     drawRuns(step.runs_full, step.pointers);
     drawBuffers(step.buffers);
     drawHeap(step.heap);
@@ -162,23 +155,6 @@ function drawState(step) {
     drawOutput(step.output);
 }
 
-// --- CÁC HÀM VẼ (drawRuns, drawBuffers, drawHeap, drawPicked, drawOutput) ---
-// (Bạn copy lại từ file script.js cũ của bạn vì phần này đã hoạt động tốt)
-
-function drawState(step) {
-    // 1. Cập nhật con số Disk Reads lên UI
-    const ioDisplay = document.getElementById("io-display");
-    if (ioDisplay) {
-        ioDisplay.innerText = `DISK READS: ${step.io_reads}`;
-    }
-
-    // 2. Các hàm vẽ khác giữ nguyên
-    drawRuns(step.runs_full, step.pointers);
-    drawBuffers(step.buffers);
-    drawHeap(step.heap);
-    drawPicked(step.picked);
-    drawOutput(step.output);
-}
 
 /**
  * CÁC HÀM VẼ GIAO DIỆN
@@ -337,21 +313,18 @@ function drawOutput(output) {
 }
 
 
-function showToast(message) {
+// Các hàm vẽ chi tiết (Bạn giữ nguyên logic vẽ SVG/HTML cũ của bạn ở đây)
+function drawRuns(runs, pointers) { /* Code vẽ của bạn */ }
+function drawBuffers(buffers) { /* Code vẽ của bạn */ }
+function drawHeap(heap) { /* Code vẽ của bạn */ }
+function drawPicked(val) { /* Code vẽ của bạn */ }
+function drawOutput(output) { /* Code vẽ của bạn */ }
+
+function showToast(msg) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerText = message;
+    toast.innerText = msg;
     container.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 5000);
-}
-
-function pauseAnimation() { clearInterval(animationInterval); animationInterval = null; }
-function seekStep(idx) {
-    pauseAnimation();
-    currentIndex = parseInt(idx);
-    if (currentSteps[currentIndex]) {
-        drawState(currentSteps[currentIndex]);
-        updateSliderDisplay();
-    }
+    setTimeout(() => toast.remove(), 4000);
 }

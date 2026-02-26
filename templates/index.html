@@ -18,32 +18,38 @@
         <div class="upload-container">
             <div class="game-panel" style="width: 400px; margin-bottom: 20px;">
                 <h2><span class="icon">⚙️</span> CONFIGURATION</h2>
-                <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
-                    <label>BLOCK SIZE (RAM):</label>
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <label>BLOCK SIZE (B):</label>
                     <input type="number" id="blockSizeInput" value="5" min="1" max="100" class="input-game">
                 </div>
-                <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
-                    <label>K-WAY MERGE:</label>
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <label>K-WAY MERGE (K):</label>
                     <input type="number" id="kWayInput" value="4" min="2" max="20" class="input-game">
                 </div>
-                <div style="border-top: 1px solid var(--border-color); pt-10; margin-top: 10px;">
-                    <p style="font-size: 0.8rem;">Dự kiến RAM dùng: <span id="ram-estimate" class="neon-text">0</span> số</p>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;">
+                    <p style="font-size: 0.85rem;">Dự kiến RAM dùng: <span id="ram-estimate" class="neon-text">24</span> số</p>
+                    <small id="ram-warning" style="color: #ff4d4d; font-size: 0.7rem; display: none;">⚠️ Vượt định mức an toàn (1000)!</small>
                 </div>
             </div>
 
             <input type="file" id="fileInput" hidden onchange="handleFileSelect()">
-            <label for="fileInput" class="btn-game highlight">SELECT BINARY FILE</label>
+            <label for="fileInput" id="fileInputLabel" class="btn-game highlight">SELECT BINARY FILE</label>
 
             <div id="file-info" class="game-panel" style="margin-top: 20px; display: none; width: 400px;">
                 <p>Số lượng phần tử (N): <span id="info-n" class="neon-text">0</span></p>
-                <p>Số lượng Runs: <span id="info-k" class="neon-text">0</span></p>
                 <p>Trạng thái: <span id="info-status" class="neon-text">Ready</span></p>
-                <p>Đường dẫn: <span id="info-output" class="neon-text"></span></p>
+                <p style="font-size: 0.75rem; color: #888; margin-bottom: 15px;">Output: <span id="info-output"></span></p>
+
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="btn-visualize" onclick="goToVisualize()" class="btn-game" style="display: none; flex: 1;">WATCH VISUALIZATION</button>
+
+                    <a href="/download" id="btn-download" class="btn-game" style="display: none; flex: 1; text-decoration: none; background: #00ff88; color: #000; text-align: center;">
+                        DOWNLOAD RESULT
+                    </a>
+                </div>
             </div>
 
-            <button id="btn-visualize" onclick="goToVisualize()" class="btn-game" style="display: none;">WATCH VISUALIZATION</button>
-
-            <div id="loading-area" style="display: none;">
+            <div id="loading-area" style="display: none; margin-top: 20px;">
                 <div class="loader"></div>
                 <p class="neon-text">PROCESSING I/O...</p>
             </div>
@@ -87,8 +93,7 @@
 
                 <section class="game-panel">
                     <h2><span class="icon">📊</span> FINAL OUTPUT</h2>
-                    <div id="output" class="output-grid">
-                    </div>
+                    <div id="output" class="output-grid"></div>
                 </section>
             </div>
         </main>

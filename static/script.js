@@ -14,7 +14,32 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateRamEstimate() {
     const b = parseInt(document.getElementById('blockSizeInput').value) || 0;
     const k = parseInt(document.getElementById('kWayInput').value) || 0;
-    document.getElementById('ram-estimate').innerText = (k * b) + k;
+    const ram = (k * b) + k;
+
+    const display = document.getElementById('ram-estimate');
+    const warning = document.getElementById('config-warning');
+    const btnSort = document.getElementById('btn-start-sort');
+    const btnPrep = document.getElementById('btn-prep-viz');
+
+    display.innerText = ram;
+    let errorMsg = "";
+
+    if (b <= 0 || k <= 0) errorMsg = "⚠️ B and K must be greater than 0!";
+    else if (k < 2) errorMsg = "⚠️ K-Way must be at least 2!";
+    else if (ram > 5000) errorMsg = "⚠️ RAM usage too high! System might crash.";
+
+    if (errorMsg) {
+        warning.innerText = errorMsg;
+        warning.style.display = 'block';
+        display.style.color = "#ff4444";
+        if (btnSort) btnSort.disabled = true;
+        if (btnPrep) btnPrep.disabled = true;
+    } else {
+        warning.style.display = 'none';
+        display.style.color = "var(--neon-orange)";
+        if (btnSort) btnSort.disabled = false;
+        if (btnPrep) btnPrep.disabled = false;
+    }
 }
 
 function handleFileSelect() {
@@ -38,8 +63,8 @@ async function triggerSort() {
         document.getElementById('info-status').innerText = data.status;
         document.getElementById('btn-visualize').style.display = 'none';
         document.getElementById('btn-prep-viz').style.display = 'block';
-        showToast("Full file sorted successfully! You can download now.");
-    } catch (e) { alert("Error during sorting process!"); }
+        showToast("Full file sorted successfully!");
+    } catch (e) { alert("Error during sorting!"); }
 }
 
 async function requestVisualize() {
@@ -56,13 +81,8 @@ async function requestVisualize() {
         cachedSteps = data.steps;
         loading.style.display = 'none';
         document.getElementById('btn-visualize').style.display = 'block';
-
-        // Thay đổi dòng thông báo ở đây để dùng số lượng thực tế
         showToast(`Visualization data prepared for ${data.count} elements!`);
-    } catch (e) {
-        alert("Error loading visualization!");
-        btnPrep.style.display = 'block';
-    }
+    } catch (e) { alert("Error loading visualization!"); btnPrep.style.display = 'block'; }
 }
 
 function togglePlayPause() {
@@ -112,7 +132,6 @@ function startAnimation() {
 }
 
 function drawState(step) {
-    // Removed DISK READS update
     drawRuns(step.runs_full, step.pointers);
     drawBuffers(step.buffers);
     drawHeap(step.heap);
@@ -120,7 +139,6 @@ function drawState(step) {
     drawOutput(step.output);
 }
 
-// --- RENDERING FUNCTIONS ---
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {
@@ -205,10 +223,7 @@ function drawOutput(out) {
             div.innerText = value.toFixed(1);
             container.appendChild(div);
         });
-        container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth'
-        });
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
     else if (out.length < currentDisplayedCount || out.length === 0) {
         container.innerHTML = "";

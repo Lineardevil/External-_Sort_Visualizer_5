@@ -224,3 +224,12 @@ input[type=range] {
         transform: scale(1);
     }
 }
+
+.btn-game:disabled {
+    cursor: not-allowed;
+    border-color: #555 !important;
+    color: #555 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    opacity: 0.5;
+}

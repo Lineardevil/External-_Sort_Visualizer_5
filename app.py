@@ -130,4 +130,6 @@ def download_file():
     return send_from_directory("output", "sorted.bin", as_attachment=True)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    # Lấy PORT từ environment variable của Railway, mặc định là 5000 nếu chạy local
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)

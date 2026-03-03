@@ -38,8 +38,8 @@ async function triggerSort() {
         document.getElementById('info-status').innerText = data.status;
         document.getElementById('btn-visualize').style.display = 'none';
         document.getElementById('btn-prep-viz').style.display = 'block';
-        showToast("Full file sorted successfully!");
-    } catch (e) { alert("Error during sorting!"); }
+        showToast("Full file sorted successfully! You can download now.");
+    } catch (e) { alert("Error during sorting process!"); }
 }
 
 async function requestVisualize() {
@@ -56,7 +56,7 @@ async function requestVisualize() {
         cachedSteps = data.steps;
         loading.style.display = 'none';
         document.getElementById('btn-visualize').style.display = 'block';
-        showToast("Visualization ready!");
+        showToast("Visualization data prepared for 500 elements!");
     } catch (e) { alert("Error loading visualization!"); btnPrep.style.display = 'block'; }
 }
 
@@ -107,7 +107,7 @@ function startAnimation() {
 }
 
 function drawState(step) {
-    // Disk reads removed as requested
+    // Removed DISK READS update
     drawRuns(step.runs_full, step.pointers);
     drawBuffers(step.buffers);
     drawHeap(step.heap);
@@ -115,6 +115,7 @@ function drawState(step) {
     drawOutput(step.output);
 }
 
+// --- RENDERING FUNCTIONS ---
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {
@@ -191,7 +192,6 @@ function drawOutput(out) {
     const container = document.getElementById("output");
     if (!container) return;
     const currentDisplayedCount = container.children.length;
-
     if (out.length > currentDisplayedCount) {
         const newElements = out.slice(currentDisplayedCount);
         newElements.forEach((value) => {
@@ -200,7 +200,10 @@ function drawOutput(out) {
             div.innerText = value.toFixed(1);
             container.appendChild(div);
         });
-        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+        });
     }
     else if (out.length < currentDisplayedCount || out.length === 0) {
         container.innerHTML = "";

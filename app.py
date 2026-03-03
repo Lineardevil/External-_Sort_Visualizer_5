@@ -5,11 +5,12 @@ import heapq
 
 app = Flask(__name__)
 
-# Đảm bảo các thư mục hệ thống tồn tại
+# Ensure system directories exist
 for path in ["uploads", "runs", "output"]:
     os.makedirs(path, exist_ok=True)
 
 def read_binary_file(filename):
+    """Load binary file into RAM"""
     numbers = []
     if not os.path.exists(filename): return numbers
     with open(filename, "rb") as f:
@@ -25,6 +26,7 @@ def write_binary_file(filename, numbers):
             f.write(struct.pack("d", number))
 
 def create_runs_dynamic(input_file, k):
+    """Split file into sorted runs"""
     for f in os.listdir("runs"):
         os.remove(os.path.join("runs", f))
     numbers = read_binary_file(input_file)
@@ -41,6 +43,7 @@ def create_runs_dynamic(input_file, k):
     return run_files
 
 def fast_merge_only(run_files, output_file):
+    """Fast merge without storing steps for download"""
     handles = [open(f, "rb") for f in run_files]
     def get_val(f):
         data = f.read(8)
@@ -58,6 +61,7 @@ def fast_merge_only(run_files, output_file):
     for h in handles: h.close()
 
 def merge_runs_with_blocks(run_files, output_file, block_size):
+    """Merge and store animation steps"""
     handles = [open(f, "rb") for f in run_files]
     buffers = [[] for _ in run_files]
     steps = []
@@ -102,6 +106,7 @@ def index():
 
 @app.route("/upload", methods=["POST"])
 def upload():
+    """SORT FULL FILE"""
     file = request.files.get("file")
     k_way = max(2, min(int(request.form.get("k_way", 4)), 20))
     if not file: return jsonify({"error": "No file uploaded"}), 400
@@ -113,6 +118,7 @@ def upload():
 
 @app.route("/prepare_visualize", methods=["POST"])
 def prepare_visualize():
+    """PREPARE 500 ELEMENTS FOR PREVIEW"""
     block_size = int(request.form.get("block_size", 5))
     k_way = int(request.form.get("k_way", 4))
     input_path = "uploads/input.bin"
@@ -130,6 +136,6 @@ def download_file():
     return send_from_directory("output", "sorted.bin", as_attachment=True)
 
 if __name__ == "__main__":
-    # Lấy PORT từ environment variable của Railway, mặc định là 5000 nếu chạy local
+    # Added PORT configuration for Railway
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)

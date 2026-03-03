@@ -38,8 +38,8 @@ async function triggerSort() {
         document.getElementById('info-status').innerText = data.status;
         document.getElementById('btn-visualize').style.display = 'none';
         document.getElementById('btn-prep-viz').style.display = 'block';
-        showToast("Full file sorted successfully! You can download now.");
-    } catch (e) { alert("Error during sorting process!"); }
+        showToast("Full file sorted successfully!");
+    } catch (e) { alert("Error during sorting!"); }
 }
 
 async function requestVisualize() {
@@ -56,7 +56,7 @@ async function requestVisualize() {
         cachedSteps = data.steps;
         loading.style.display = 'none';
         document.getElementById('btn-visualize').style.display = 'block';
-        showToast("Visualization data prepared for 500 elements!");
+        showToast("Visualization ready!");
     } catch (e) { alert("Error loading visualization!"); btnPrep.style.display = 'block'; }
 }
 
@@ -107,7 +107,7 @@ function startAnimation() {
 }
 
 function drawState(step) {
-    document.getElementById("io-display").innerText = `DISK READS: ${step.io_reads}`;
+    // Disk reads removed as requested
     drawRuns(step.runs_full, step.pointers);
     drawBuffers(step.buffers);
     drawHeap(step.heap);
@@ -115,7 +115,6 @@ function drawState(step) {
     drawOutput(step.output);
 }
 
-// --- RENDERING FUNCTIONS ---
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {
@@ -191,31 +190,18 @@ function drawPicked(v) {
 function drawOutput(out) {
     const container = document.getElementById("output");
     if (!container) return;
-
-    // Lấy số lượng phần tử hiện có trong giao diện
     const currentDisplayedCount = container.children.length;
 
-    // Nếu dữ liệu mới (out) nhiều hơn dữ liệu đang hiển thị
     if (out.length > currentDisplayedCount) {
-        // Chỉ lấy những phần tử mới chưa được vẽ
         const newElements = out.slice(currentDisplayedCount);
-
         newElements.forEach((value) => {
             const div = document.createElement("div");
             div.className = "box output-box";
             div.innerText = value.toFixed(1);
-
-            // Thêm trực tiếp vào cuối container mà không xóa cũ
             container.appendChild(div);
         });
-
-        // Tự động cuộn xuống mượt mà (smooth scroll)
-        container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth'
-        });
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
-    // Trường hợp tua slider hoặc reset (out ít hơn hiện tại) thì mới vẽ lại toàn bộ
     else if (out.length < currentDisplayedCount || out.length === 0) {
         container.innerHTML = "";
         out.forEach(value => {

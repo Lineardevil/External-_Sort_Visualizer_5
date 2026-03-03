@@ -1,7 +1,7 @@
 import struct
 import random
 
-def generate_binary_file(filename="500.bin", count=500):
+def generate_binary_file(filename="400.bin", count=400):
     with open(filename, "wb") as f:
         for _ in range(count):
             number = random.uniform(0, 100)
@@ -10,4 +10,4 @@ def generate_binary_file(filename="500.bin", count=500):
     print(f"Đã tạo {filename} với {count} số double (8 bytes).")
 
 if __name__ == "__main__":
-    generate_binary_file("500.bin", 500)
+    generate_binary_file("400.bin", 400)

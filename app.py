@@ -118,18 +118,26 @@ def upload():
 
 @app.route("/prepare_visualize", methods=["POST"])
 def prepare_visualize():
-    """PREPARE 500 ELEMENTS FOR PREVIEW"""
+    """STAGE 2: PREPARE ELEMENTS FOR PREVIEW"""
     block_size = int(request.form.get("block_size", 5))
     k_way = int(request.form.get("k_way", 4))
     input_path = "uploads/input.bin"
     viz_temp_path = "uploads/viz_limit.bin"
-    with open(input_path, "rb") as f_in:
-        data = f_in.read(500 * 8)
-    with open(viz_temp_path, "wb") as f_out:
-        f_out.write(data)
+
+    # Đọc dữ liệu thực tế để biết số lượng (tối đa 500)
+    all_data = read_binary_file(input_path)
+    limit = min(len(all_data), 500)
+    actual_data = all_data[:limit]
+    write_binary_file(viz_temp_path, actual_data)
+
     runs = create_runs_dynamic(viz_temp_path, k_way)
     steps = merge_runs_with_blocks(runs, "output/viz_sorted.bin", block_size)
-    return jsonify({"steps": steps})
+
+    # Trả về thêm trường 'count'
+    return jsonify({
+        "steps": steps,
+        "count": len(actual_data)
+    })
 
 @app.route('/download')
 def download_file():

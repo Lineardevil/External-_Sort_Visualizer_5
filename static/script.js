@@ -56,8 +56,13 @@ async function requestVisualize() {
         cachedSteps = data.steps;
         loading.style.display = 'none';
         document.getElementById('btn-visualize').style.display = 'block';
-        showToast("Visualization data prepared for 500 elements!");
-    } catch (e) { alert("Error loading visualization!"); btnPrep.style.display = 'block'; }
+
+        // Thay đổi dòng thông báo ở đây để dùng số lượng thực tế
+        showToast(`Visualization data prepared for ${data.count} elements!`);
+    } catch (e) {
+        alert("Error loading visualization!");
+        btnPrep.style.display = 'block';
+    }
 }
 
 function togglePlayPause() {

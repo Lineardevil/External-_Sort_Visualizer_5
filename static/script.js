@@ -71,11 +71,17 @@ async function requestVisualize() {
     const formData = new FormData();
     formData.append("block_size", document.getElementById('blockSizeInput').value);
     formData.append("k_way", document.getElementById('kWayInput').value);
+
     const res = await fetch("/prepare_visualize", { method: "POST", body: formData });
     const data = await res.json();
+
     cachedSteps = data.steps;
+    const actualCount = data.count; // Lấy con số thực tế từ backend
+
     document.getElementById('btn-visualize').style.display = 'block';
-    showToast(`Prepared 200 elements with Chunk Size 40`);
+
+    // Hiển thị thông báo khớp với số lượng thực tế
+    showToast(`Prepared ${actualCount} elements for visualization`);
 }
 
 function togglePlayPause() {
@@ -138,7 +144,7 @@ function drawState(step) {
         drawPicked(step.picked);
         drawOutput(step.output);
     }
-}
+
 
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";

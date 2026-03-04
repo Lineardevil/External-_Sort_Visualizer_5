@@ -148,8 +148,10 @@ def upload():
 def prepare_visualize():
     block_size = int(request.form.get("block_size", 5))
     k_way = int(request.form.get("k_way", 4))
-    # Chỉ lấy 200 số đầu tiên để Visualize mượt mà
-    input_numbers = read_binary_file("uploads/input.bin")[:200]
+    # Lấy 500 số đầu
+    all_numbers = read_binary_file("uploads/input.bin")
+    input_numbers = all_numbers[:500]
+    actual_count = len(input_numbers)
 
     # Xóa các file viz cũ
     for f in os.listdir("runs"):
@@ -190,7 +192,10 @@ def prepare_visualize():
         current_runs = new_level_runs  # Cập nhật danh sách Run cho lượt tiếp theo
         pass_idx += 1
 
-    return jsonify({"steps": steps, "count": len(input_numbers)})
+    return jsonify({
+        "steps": steps,
+        "count": actual_count
+    })
 
 
 @app.route('/download')

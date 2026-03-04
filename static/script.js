@@ -126,11 +126,12 @@ function startAnimation() {
 function drawState(step) {
     const statusH2 = document.querySelector("#visualize-screen h2");
     if (step.phase === "creation") {
-        statusH2.innerText = "PHASE 1: CHUNKING & RUN CREATION (Size 40)";
+        statusH2.innerText = `PHASE 1: CHUNKING (Size 40) - ${step.msg}`;
         drawRuns(step.all_runs, []);
-        document.getElementById("buffers-area").innerHTML = "<div class='loader-small'></div> Sorting chunk in RAM...";
+        document.getElementById("buffers-area").innerHTML = "<div class='loader-small'></div> Đang chuẩn bị các Run ban đầu...";
     } else {
-        statusH2.innerText = "PHASE 2: K-WAY MERGING (Disk -> RAM -> Heap)";
+        // Hiển thị thông tin Pass (Lượt trộn) trung gian
+        statusH2.innerHTML = `PHASE 2: MERGING <span class='neon-text'>[${step.pass_info}]</span>`;
         drawRuns(step.runs_full, step.pointers);
         drawBuffers(step.buffers);
         drawHeap(step.heap);

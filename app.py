@@ -137,28 +137,145 @@ def prepare_visualize():
     input_numbers = read_binary_file("uploads/input.bin")[:200]
 
     steps = []
-    # PHASE 1: CREATION (Lấy chunk cố định 40 -> Chia run)
+    # PHASE 1: Tạo Run ban đầu (Chunk 40)
     chunk_size = 40
-    initial_run_paths = []
+    current_runs = []
     for i in range(0, len(input_numbers), chunk_size):
         chunk = sorted(input_numbers[i:i + chunk_size])
-        path = f"runs/viz_run_{len(initial_run_paths)}.bin"
+        path = f"runs/viz_run_0_{len(current_runs)}.bin"
         write_binary_file(path, chunk)
-        initial_run_paths.append(path)
+        current_runs.append(path)
         steps.append({
             "phase": "creation",
-            "msg": f"Đang tạo Run {len(initial_run_paths) - 1} (Size: {len(chunk)})",
-            "all_runs": [read_binary_file(p) for p in initial_run_paths]
+            "msg": f"Tạo Run ban đầu từ Chunk 40 số",
+            "all_runs": [read_binary_file(p) for p in current_runs]
         })
 
-    # PHASE 2: MERGE (Tràn xuống buffer -> Heap -> Output)
-    # Lưu ý: Nếu số Run > k_way, visualizer này sẽ lấy k_way runs đầu tiên để minh họa
-    active_runs = initial_run_paths[:k_way]
-    handles = [open(f, "rb") for f in active_runs]
-    buffers = [[] for _ in active_runs]
+    # PHASE 2: Multi-pass Merge (Trộn cho đến khi còn 1 Run)
+    pass_idx = 1
+    while len(current_runs) > 1:
+        new_runs = []
+        # Chia các Run hiện có thành từng nhóm tối đa K phần tử
+        for i in range(0, len(current_runs), k_way):
+            group = current_runs[i: i + k_way]
+            if len(group) == 1:  # Nếu chỉ còn 1 Run lẻ, đưa thẳng vào lượt sau
+                new_runs.append(group[0])
+                continue
+
+            output_path = f"runs/viz_run_{pass_idx}_{len(new_runs)}.bin"
+            # Thực hiện trộn nhóm này và ghi lại steps
+            sub_steps = merge_logic_for_viz(group, output_path, block_size, pass_idx)
+            steps.extend(sub_steps)
+            new_runs.append(output_path)
+
+        current_runs = new_runs
+        pass_idx += 1
+
+    return jsonify({"steps": steps, "count": len(input_numbers)})
+
+
+def merge_logic_for_viz(run_files, output_file, block_size, pass_num, group_idx):
+    """Thực hiện trộn một nhóm Run và ghi lại các bước (steps)"""
+    handles = [open(f, "rb") for f in run_files]
+    buffers = [[] for _ in run_files]
+    steps = []
     viz_output = []
-    pointers = [0] * len(active_runs)
-    full_runs_data = [read_binary_file(f) for f in active_runs]
+    # Đọc toàn bộ nội dung các run trong nhóm này để hiển thị trên giao diện
+    full_runs_data = [read_binary_file(f) for f in run_files]
+    pointers = [0] * len(run_files)
+
+    msg_prefix = f"PASS {pass_num} (Group {group_idx}): "
+
+    def refill(idx):
+        data = handles[idx].read(8 * block_size)
+        if not data: return False
+        nums = struct.unpack(f"{len(data) // 8}d", data)
+        buffers[idx].extend(nums)
+        return True
+
+    heap = []
+    # Khởi tạo Heap
+    for i in range(len(handles)):
+        if refill(i) and buffers[i]:
+            val = buffers[i].pop(0)
+            heapq.heappush(heap, (val, i))
+
+    while heap:
+        val, idx = heapq.heappop(heap)
+        viz_output.append(val)
+        pointers[idx] += 1
+
+        # Ghi lại trạng thái tại bước này
+        steps.append({
+            "phase": "merge",
+            "pass_info": f"Lượt {pass_num} - Nhóm {group_idx}",
+            "picked": val,
+            "run_idx": idx,
+            "heap": [x[0] for x in heap],
+            "buffers": [list(b) for b in buffers],
+            "pointers": pointers.copy(),
+            "runs_full": full_runs_data,
+            "output": viz_output.copy()
+        })
+
+        if not buffers[idx]:
+            refill(idx)  # Nạp thêm Block Size nếu Buffer trống
+
+        if buffers[idx]:
+            next_v = buffers[idx].pop(0)
+            heapq.heappush(heap, (next_v, idx))
+
+    for h in handles: h.close()
+    # Sau khi trộn xong nhóm này, ghi kết quả ra tệp Run trung gian
+    write_binary_file(output_file, viz_output)
+    return steps
+
+
+@app.route("/prepare_visualize", methods=["POST"])
+def prepare_visualize():
+    block_size = int(request.form.get("block_size", 5))
+    k_way = int(request.form.get("k_way", 4))
+    # Lấy trích đoạn 200 số để visualize
+    input_numbers = read_binary_file("uploads/input.bin")[:200]
+
+    steps = []
+    # --- PHASE 1: Tạo các Run ban đầu (Chunk Size 40) ---
+    chunk_size = 40
+    current_runs = []
+    for i in range(0, len(input_numbers), chunk_size):
+        chunk = sorted(input_numbers[i:i + chunk_size])
+        path = f"runs/viz_run_p0_{len(current_runs)}.bin"
+        write_binary_file(path, chunk)
+        current_runs.append(path)
+        steps.append({
+            "phase": "creation",
+            "msg": f"Tạo Run {len(current_runs) - 1} từ Chunk 40 số",
+            "all_runs": [read_binary_file(p) for p in current_runs]
+        })
+
+    # --- PHASE 2: Trộn nhiều lượt (Multi-pass Merge) ---
+    pass_idx = 1
+    while len(current_runs) > 1:
+        new_level_runs = []
+        # Chia các Run hiện có thành từng nhóm có kích thước K
+        for i in range(0, len(current_runs), k_way):
+            group = current_runs[i: i + k_way]
+
+            # Nếu nhóm chỉ có 1 Run (dư ra), chuyển thẳng nó sang lượt sau
+            if len(group) == 1:
+                new_level_runs.append(group[0])
+                continue
+
+            output_path = f"runs/viz_run_p{pass_idx}_{len(new_level_runs)}.bin"
+            # Thực hiện trộn và lấy các bước visualize
+            group_steps = merge_logic_for_viz(group, output_path, block_size, pass_idx, len(new_level_runs))
+            steps.extend(group_steps)
+            new_level_runs.append(output_path)
+
+        current_runs = new_level_runs  # Cập nhật danh sách Run cho lượt trộn tiếp theo
+        pass_idx += 1
+
+    return jsonify({"steps": steps, "count": len(input_numbers)})
 
     def refill(idx):
         data = handles[idx].read(8 * block_size)

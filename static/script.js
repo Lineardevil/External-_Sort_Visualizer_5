@@ -144,8 +144,7 @@ function drawState(step) {
         drawPicked(step.picked);
         drawOutput(step.output);
     }
-
-
+}
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {

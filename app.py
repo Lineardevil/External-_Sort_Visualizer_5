@@ -231,52 +231,6 @@ def merge_logic_for_viz(run_files, output_file, block_size, pass_num, group_idx)
     return steps
 
 
-@app.route("/prepare_visualize", methods=["POST"])
-def prepare_visualize():
-    block_size = int(request.form.get("block_size", 5))
-    k_way = int(request.form.get("k_way", 4))
-    # Lấy trích đoạn 200 số để visualize
-    input_numbers = read_binary_file("uploads/input.bin")[:200]
-
-    steps = []
-    # --- PHASE 1: Tạo các Run ban đầu (Chunk Size 40) ---
-    chunk_size = 40
-    current_runs = []
-    for i in range(0, len(input_numbers), chunk_size):
-        chunk = sorted(input_numbers[i:i + chunk_size])
-        path = f"runs/viz_run_p0_{len(current_runs)}.bin"
-        write_binary_file(path, chunk)
-        current_runs.append(path)
-        steps.append({
-            "phase": "creation",
-            "msg": f"Tạo Run {len(current_runs) - 1} từ Chunk 40 số",
-            "all_runs": [read_binary_file(p) for p in current_runs]
-        })
-
-    # --- PHASE 2: Trộn nhiều lượt (Multi-pass Merge) ---
-    pass_idx = 1
-    while len(current_runs) > 1:
-        new_level_runs = []
-        # Chia các Run hiện có thành từng nhóm có kích thước K
-        for i in range(0, len(current_runs), k_way):
-            group = current_runs[i: i + k_way]
-
-            # Nếu nhóm chỉ có 1 Run (dư ra), chuyển thẳng nó sang lượt sau
-            if len(group) == 1:
-                new_level_runs.append(group[0])
-                continue
-
-            output_path = f"runs/viz_run_p{pass_idx}_{len(new_level_runs)}.bin"
-            # Thực hiện trộn và lấy các bước visualize
-            group_steps = merge_logic_for_viz(group, output_path, block_size, pass_idx, len(new_level_runs))
-            steps.extend(group_steps)
-            new_level_runs.append(output_path)
-
-        current_runs = new_level_runs  # Cập nhật danh sách Run cho lượt trộn tiếp theo
-        pass_idx += 1
-
-    return jsonify({"steps": steps, "count": len(input_numbers)})
-
     def refill(idx):
         data = handles[idx].read(8 * block_size)
         if not data: return False

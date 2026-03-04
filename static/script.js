@@ -132,13 +132,21 @@ function startAnimation() {
 }
 
 function drawState(step) {
-    drawRuns(step.runs_full, step.pointers);
-    drawBuffers(step.buffers);
-    drawHeap(step.heap);
-    drawPicked(step.picked);
-    drawOutput(step.output);
+    // Hiển thị thông báo trạng thái
+    if (step.phase === "creation") {
+        document.querySelector("#visualize-screen h2").innerText = `PHASE 1: CHUNKING (Run ${step.current_run_idx})`;
+        drawRuns(step.all_runs, []);
+        // Hiệu ứng giả lập nạp Chunk
+        document.getElementById("buffers-area").innerHTML = `<div class="neon-text">System sorting chunk: [${step.chunk_data.slice(0,5)}...]</div>`;
+    } else {
+        document.querySelector("#visualize-screen h2").innerText = "PHASE 2: K-WAY MERGING";
+        drawRuns(step.runs_full, step.pointers);
+        drawBuffers(step.buffers);
+        drawHeap(step.heap);
+        drawPicked(step.picked);
+        drawOutput(step.output);
+    }
 }
-
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {
@@ -155,18 +163,31 @@ function drawRuns(runs, pointers) {
 }
 
 function drawBuffers(buffers) {
-    const c = document.getElementById("buffers-area"); c.innerHTML = "";
+    const bSize = parseInt(document.getElementById('blockSizeInput').value);
+    const c = document.getElementById("buffers-area");
+    c.innerHTML = "";
+
     buffers.forEach((buf, i) => {
         const row = document.createElement("div"); row.className = "buffer-row";
-        row.innerHTML = `<div class="buffer-label">BUFFER #${i}</div>`;
-        buf.forEach(v => {
-            const b = document.createElement("div"); b.className = "box buffer-box"; b.innerText = v.toFixed(1);
+        const isRefilling = buf.length === 0;
+        row.innerHTML = `<div class="buffer-label">BUFFER #${i} ${isRefilling ? '<span style="color:red"> [REFILLING...]</span>' : ''}</div>`;
+
+        // Vẽ đủ số ô bằng Block Size để thấy luồng trống/đầy
+        for (let j = 0; j < bSize; j++) {
+            const b = document.createElement("div");
+            b.className = "box buffer-box";
+            if (buf[j] !== undefined) {
+                b.innerText = buf[j].toFixed(1);
+                b.style.borderColor = "var(--neon-blue)";
+            } else {
+                b.style.opacity = "0.1"; // Ô trống trong RAM
+                b.style.borderStyle = "dashed";
+            }
             row.appendChild(b);
-        });
+        }
         c.appendChild(row);
     });
 }
-
 function drawHeap(heap) {
     const container = document.getElementById("heap"); container.innerHTML = "";
     if (heap.length === 0) return;

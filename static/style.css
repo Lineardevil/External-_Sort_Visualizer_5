@@ -233,3 +233,20 @@ input[type=range] {
     background: transparent !important;
     opacity: 0.5;
 }
+
+.buffer-box {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.picked-box {
+    animation: pulse 0.5s infinite alternate;
+}
+
+@keyframes pulse {
+    from { transform: scale(1.1); box-shadow: 0 0 10px var(--neon-orange); }
+    to { transform: scale(1.25); box-shadow: 0 0 25px var(--neon-orange); }
+}
+
+.run-row {
+    transition: background 0.3s;
+}

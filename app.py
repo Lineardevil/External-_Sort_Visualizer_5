@@ -135,21 +135,72 @@ def prepare_visualize():
     try:
         block_size = int(request.form.get("block_size", 5))
         k_way = int(request.form.get("k_way", 4))
-        if block_size <= 0 or k_way < 2: return jsonify({"error": "Invalid config"}), 400
     except:
         return jsonify({"error": "Invalid params"}), 400
 
-    input_path = "uploads/input.bin"
-    viz_temp_path = "uploads/viz_limit.bin"
-    all_data = read_binary_file(input_path)
-    limit = min(len(all_data), 500)
-    actual_data = all_data[:limit]
-    write_binary_file(viz_temp_path, actual_data)
+    input_numbers = read_binary_file("uploads/input.bin")[:200]  # Lấy 200 số để dễ nhìn
+    steps = []
 
-    runs = create_runs_dynamic(viz_temp_path, k_way)
-    steps = merge_runs_with_blocks(runs, "output/viz_sorted.bin", block_size)
-    return jsonify({"steps": steps, "count": len(actual_data)})
+    # --- PHASE 1: CREATION (Lấy chunk -> Chia Run) ---
+    n = len(input_numbers)
+    run_size = max(1, (n + k_way - 1) // k_way)
+    initial_runs = []
 
+    for i in range(0, n, run_size):
+        chunk = sorted(input_numbers[i:i + run_size])
+        run_name = f"runs/run_{len(initial_runs)}.bin"
+        write_binary_file(run_name, chunk)
+        initial_runs.append(run_name)
+
+        # Ghi lại bước tạo Run (Visualize luồng nạp Chunk)
+        steps.append({
+            "phase": "creation",
+            "msg": f"Đang tạo Run {len(initial_runs) - 1} từ Chunk dữ liệu...",
+            "current_run_idx": len(initial_runs) - 1,
+            "chunk_data": chunk,
+            "all_runs": [read_binary_file(f) for f in initial_runs] + [[] for _ in range(k_way - len(initial_runs))]
+        })
+
+    # --- PHASE 2: MERGE (Tràn xuống buffer -> Heap -> Output) ---
+    handles = [open(f, "rb") for f in initial_runs]
+    buffers = [[] for _ in initial_runs]
+    viz_output = []
+    pointers = [0] * len(initial_runs)
+
+    def refill(idx):
+        data = handles[idx].read(8 * block_size)
+        if not data: return False
+        buffers[idx].extend(struct.unpack(f"{len(data) // 8}d", data))
+        return True
+
+    heap = []
+    for i in range(len(handles)):
+        if refill(i) and buffers[i]:
+            val = buffers[i].pop(0)
+            heapq.heappush(heap, (val, i))
+
+    while heap:
+        val, idx = heapq.heappop(heap)
+        viz_output.append(val)
+        pointers[idx] += 1
+
+        steps.append({
+            "phase": "merge",
+            "picked": val, "run_idx": idx,
+            "heap": [x[0] for x in heap],
+            "buffers": [list(b) for b in buffers],
+            "pointers": pointers.copy(),
+            "runs_full": [read_binary_file(f) for f in initial_runs],
+            "output": viz_output.copy()
+        })
+
+        if not buffers[idx]: refill(idx)
+        if buffers[idx]:
+            next_val = buffers[idx].pop(0)
+            heapq.heappush(heap, (next_val, idx))
+
+    for h in handles: h.close()
+    return jsonify({"steps": steps, "count": n})
 
 @app.route('/download')
 def download_file():

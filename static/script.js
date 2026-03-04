@@ -68,21 +68,14 @@ async function triggerSort() {
 }
 
 async function requestVisualize() {
-    const loading = document.getElementById('viz-loading');
-    const btnPrep = document.getElementById('btn-prep-viz');
-    loading.style.display = 'block';
-    btnPrep.style.display = 'none';
     const formData = new FormData();
     formData.append("block_size", document.getElementById('blockSizeInput').value);
     formData.append("k_way", document.getElementById('kWayInput').value);
-    try {
-        const res = await fetch("/prepare_visualize", { method: "POST", body: formData });
-        const data = await res.json();
-        cachedSteps = data.steps;
-        loading.style.display = 'none';
-        document.getElementById('btn-visualize').style.display = 'block';
-        showToast(`Visualization data prepared for ${data.count} elements!`);
-    } catch (e) { alert("Error loading visualization!"); btnPrep.style.display = 'block'; }
+    const res = await fetch("/prepare_visualize", { method: "POST", body: formData });
+    const data = await res.json();
+    cachedSteps = data.steps;
+    document.getElementById('btn-visualize').style.display = 'block';
+    showToast(`Prepared 200 elements with Chunk Size 40`);
 }
 
 function togglePlayPause() {
@@ -117,7 +110,6 @@ function goToVisualize() {
     showPage('visualize-screen');
     startAnimation();
 }
-
 function startAnimation() {
     const slider = document.getElementById("stepSlider");
     slider.max = cachedSteps.length - 1;
@@ -128,18 +120,17 @@ function startAnimation() {
         slider.value = currentIndex;
         document.getElementById("stepDisplay").innerText = `${currentIndex + 1}/${cachedSteps.length}`;
         currentIndex++;
-    }, animationSpeed);
+    }, 800);
 }
 
 function drawState(step) {
-    // Hiển thị thông báo trạng thái
+    const statusH2 = document.querySelector("#visualize-screen h2");
     if (step.phase === "creation") {
-        document.querySelector("#visualize-screen h2").innerText = `PHASE 1: CHUNKING (Run ${step.current_run_idx})`;
+        statusH2.innerText = "PHASE 1: CHUNKING & RUN CREATION (Size 40)";
         drawRuns(step.all_runs, []);
-        // Hiệu ứng giả lập nạp Chunk
-        document.getElementById("buffers-area").innerHTML = `<div class="neon-text">System sorting chunk: [${step.chunk_data.slice(0,5)}...]</div>`;
+        document.getElementById("buffers-area").innerHTML = "<div class='loader-small'></div> Sorting chunk in RAM...";
     } else {
-        document.querySelector("#visualize-screen h2").innerText = "PHASE 2: K-WAY MERGING";
+        statusH2.innerText = "PHASE 2: K-WAY MERGING (Disk -> RAM -> Heap)";
         drawRuns(step.runs_full, step.pointers);
         drawBuffers(step.buffers);
         drawHeap(step.heap);
@@ -147,6 +138,7 @@ function drawState(step) {
         drawOutput(step.output);
     }
 }
+
 function drawRuns(runs, pointers) {
     const c = document.getElementById("runs"); c.innerHTML = "";
     runs.forEach((run, rIdx) => {
@@ -154,8 +146,8 @@ function drawRuns(runs, pointers) {
         row.innerHTML = `<div class="run-label">RUN #${rIdx}</div>`;
         run.forEach((v, i) => {
             const b = document.createElement("div"); b.className = "box"; b.innerText = v.toFixed(1);
-            if (i === pointers[rIdx]) b.style.boxShadow = "0 0 10px #ff9f0a";
-            if (i < pointers[rIdx]) b.style.opacity = "0.2";
+            if (pointers && i === pointers[rIdx]) b.style.boxShadow = "0 0 10px #ff9f0a";
+            if (pointers && i < pointers[rIdx]) b.style.opacity = "0.2";
             row.appendChild(b);
         });
         c.appendChild(row);
@@ -164,25 +156,14 @@ function drawRuns(runs, pointers) {
 
 function drawBuffers(buffers) {
     const bSize = parseInt(document.getElementById('blockSizeInput').value);
-    const c = document.getElementById("buffers-area");
-    c.innerHTML = "";
-
+    const c = document.getElementById("buffers-area"); c.innerHTML = "";
     buffers.forEach((buf, i) => {
         const row = document.createElement("div"); row.className = "buffer-row";
-        const isRefilling = buf.length === 0;
-        row.innerHTML = `<div class="buffer-label">BUFFER #${i} ${isRefilling ? '<span style="color:red"> [REFILLING...]</span>' : ''}</div>`;
-
-        // Vẽ đủ số ô bằng Block Size để thấy luồng trống/đầy
+        row.innerHTML = `<div class="buffer-label">BUFFER #${i} ${buf.length===0?'<small style="color:red">REFILL</small>':''}</div>`;
         for (let j = 0; j < bSize; j++) {
-            const b = document.createElement("div");
-            b.className = "box buffer-box";
-            if (buf[j] !== undefined) {
-                b.innerText = buf[j].toFixed(1);
-                b.style.borderColor = "var(--neon-blue)";
-            } else {
-                b.style.opacity = "0.1"; // Ô trống trong RAM
-                b.style.borderStyle = "dashed";
-            }
+            const b = document.createElement("div"); b.className = "box buffer-box";
+            if (buf[j] !== undefined) b.innerText = buf[j].toFixed(1);
+            else { b.style.opacity = "0.1"; b.style.borderStyle = "dashed"; }
             row.appendChild(b);
         }
         c.appendChild(row);

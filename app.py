@@ -132,40 +132,33 @@ def upload():
 
 @app.route("/prepare_visualize", methods=["POST"])
 def prepare_visualize():
-    try:
-        block_size = int(request.form.get("block_size", 5))
-        k_way = int(request.form.get("k_way", 4))
-    except:
-        return jsonify({"error": "Invalid params"}), 400
+    block_size = int(request.form.get("block_size", 5))
+    k_way = int(request.form.get("k_way", 4))
+    input_numbers = read_binary_file("uploads/input.bin")[:200]
 
-    input_numbers = read_binary_file("uploads/input.bin")[:200]  # Lấy 200 số để dễ nhìn
     steps = []
-
-    # --- PHASE 1: CREATION (Lấy chunk -> Chia Run) ---
-    n = len(input_numbers)
-    run_size = max(1, (n + k_way - 1) // k_way)
-    initial_runs = []
-
-    for i in range(0, n, run_size):
-        chunk = sorted(input_numbers[i:i + run_size])
-        run_name = f"runs/run_{len(initial_runs)}.bin"
-        write_binary_file(run_name, chunk)
-        initial_runs.append(run_name)
-
-        # Ghi lại bước tạo Run (Visualize luồng nạp Chunk)
+    # PHASE 1: CREATION (Lấy chunk cố định 40 -> Chia run)
+    chunk_size = 40
+    initial_run_paths = []
+    for i in range(0, len(input_numbers), chunk_size):
+        chunk = sorted(input_numbers[i:i + chunk_size])
+        path = f"runs/viz_run_{len(initial_run_paths)}.bin"
+        write_binary_file(path, chunk)
+        initial_run_paths.append(path)
         steps.append({
             "phase": "creation",
-            "msg": f"Đang tạo Run {len(initial_runs) - 1} từ Chunk dữ liệu...",
-            "current_run_idx": len(initial_runs) - 1,
-            "chunk_data": chunk,
-            "all_runs": [read_binary_file(f) for f in initial_runs] + [[] for _ in range(k_way - len(initial_runs))]
+            "msg": f"Đang tạo Run {len(initial_run_paths) - 1} (Size: {len(chunk)})",
+            "all_runs": [read_binary_file(p) for p in initial_run_paths]
         })
 
-    # --- PHASE 2: MERGE (Tràn xuống buffer -> Heap -> Output) ---
-    handles = [open(f, "rb") for f in initial_runs]
-    buffers = [[] for _ in initial_runs]
+    # PHASE 2: MERGE (Tràn xuống buffer -> Heap -> Output)
+    # Lưu ý: Nếu số Run > k_way, visualizer này sẽ lấy k_way runs đầu tiên để minh họa
+    active_runs = initial_run_paths[:k_way]
+    handles = [open(f, "rb") for f in active_runs]
+    buffers = [[] for _ in active_runs]
     viz_output = []
-    pointers = [0] * len(initial_runs)
+    pointers = [0] * len(active_runs)
+    full_runs_data = [read_binary_file(f) for f in active_runs]
 
     def refill(idx):
         data = handles[idx].read(8 * block_size)
@@ -183,24 +176,18 @@ def prepare_visualize():
         val, idx = heapq.heappop(heap)
         viz_output.append(val)
         pointers[idx] += 1
-
         steps.append({
-            "phase": "merge",
-            "picked": val, "run_idx": idx,
-            "heap": [x[0] for x in heap],
-            "buffers": [list(b) for b in buffers],
-            "pointers": pointers.copy(),
-            "runs_full": [read_binary_file(f) for f in initial_runs],
-            "output": viz_output.copy()
+            "phase": "merge", "picked": val, "run_idx": idx,
+            "heap": [x[0] for x in heap], "buffers": [list(b) for b in buffers],
+            "pointers": pointers.copy(), "runs_full": full_runs_data, "output": viz_output.copy()
         })
-
         if not buffers[idx]: refill(idx)
         if buffers[idx]:
-            next_val = buffers[idx].pop(0)
-            heapq.heappush(heap, (next_val, idx))
+            next_v = buffers[idx].pop(0)
+            heapq.heappush(heap, (next_v, idx))
 
     for h in handles: h.close()
-    return jsonify({"steps": steps, "count": n})
+    return jsonify({"steps": steps, "count": len(input_numbers)})
 
 @app.route('/download')
 def download_file():
